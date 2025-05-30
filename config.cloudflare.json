@@ -1,0 +1,7 @@
+{
+    "dns": "cloudflare",
+    "id": "user@example.com",
+    "token": "xxx",
+    "domain": "example.com",
+    "sub_domain": "mc"
+}
