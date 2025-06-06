@@ -57,7 +57,7 @@ def search_recordid(sub_domain: str, zoneid: str) -> str:
     debug("无法搜索到前缀%s", sub_domain)
     return None
 
-def update_record(sub_domain: str, domain: str, record_type: str, value: str, **params):
+def update_record(sub_domain: str, domain: str, record_type: str, value: str, /, **params):
     if record_type not in ["A", "SRV"]:
         raise ValueError(
             "不支持记录类型%s" % record_type
