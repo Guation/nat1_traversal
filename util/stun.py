@@ -92,13 +92,13 @@ def single_test(stun, source, timeout = 3):
             sock.bind(source)
         except OSError as e:
             raise ValueError(
-                "Address bind fail."
+                "无法绑定到指定地址 %s" % source
             ) from e
         try:
             sock.connect(stun)
         except ConnectionError as e:
             raise ValueError(
-                "Connect stun server fail."
+                "无法连接到stun服务器"
             ) from e
         data = _pack_stun_message(BIND_REQUEST, tran_id)
         sock.sendall(data)
@@ -106,7 +106,7 @@ def single_test(stun, source, timeout = 3):
             buf = sock.recv(MTU)
         except TimeoutError as e:
             raise ValueError(
-                "Receiving response failed, please try closing the transparent proxy."
+                "未从stun服务器收到有效信息，请尝试关闭透明代理后重试。"
             ) from e
         msg_type, msg_id, payload = _unpack_stun_message(buf)
         if tran_id == msg_id and msg_type == BIND_RESPONSE:
@@ -118,7 +118,7 @@ def single_test(stun, source, timeout = 3):
             return (source_addr, distination_addr, mapped_addr, other_addr)
         else:
             raise ValueError(
-                "UnsupportedServer %s" % buf
+                "stun服务器响应异常 %s" % buf
             )
 
 def get_self_ip_port(local):
