@@ -136,7 +136,7 @@ def _loop_connect_test(local, remote, timeout = 1):
                 sock.settimeout(timeout)
                 sock.connect(remote)
                 sock.send(test_data)
-        except socket.timeout:
+        except (socket.timeout, ConnectionError):
             pass
 
     try:

@@ -113,7 +113,7 @@ MacOS/Linux使用`python3 NAT1_Traversal.py -t -l :25565`
 ### 修改 config.json 文件中的dns配置信息
 对于不同dns供应商，我们都提供了形如`config.供应商名.json`的配置模板以供参考，您可以使用`-c /path/to/your_config.json`的方法指定您的配置路径，也可以默认使用当前目录下的`config.json`。
 #### 字段解释
-- dns: dns供应商名称，目前支持`cloudflare`和`dynv6`，以及一个不使用dns的`nodns`
+- dns: dns供应商名称，目前支持`cloudflare`和`dynv6`，以及一个不使用dns的`no_dns`
 
 - id: 您登录dns管理界面的登录邮箱或者用户名，有些供应商无需提供此字段，此时值应为`null`
 
@@ -146,7 +146,7 @@ MacOS/Linux使用`python3 NAT1_Traversal.py -t -l :25565`
 
 使用`python3 nat1_traversal.py -l :25565`，如果一切顺利，那么您将能使用`config.json`中配置的域名进服。
 
-如果您的dns供应商设置为了`nodns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:xxxx`的记录，可复制该地址连接到服务器。
+如果您的dns供应商设置为了`no_dns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:xxxx`的记录，可复制该地址连接到服务器。
 
 #### Windows/MacOS/Linux
 在不可使用Linux 3.9+的`SO_REUSEPORT`时，我们可以让NAT1 Traversal作为中间代理转发我们的MC服务器流量。
@@ -161,4 +161,4 @@ MacOS/Linux使用`python3 nat1_traversal.py -l :25565 -r :25566`
 
 如果一切顺利，那么您将能使用`config.json`中配置的域名进服。
 
-如果您的dns供应商设置为了`nodns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:xxxx`的记录，可复制该地址连接到服务器。
+如果您的dns供应商设置为了`no_dns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:xxxx`的记录，可复制该地址连接到服务器。

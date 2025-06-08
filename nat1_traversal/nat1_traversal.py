@@ -5,11 +5,11 @@
 
 __author__ = "Guation"
 
-import os, argparse, sys, json, traceback, socket, importlib, time, threading
+import os, argparse, sys, json, traceback, socket, time, threading, asyncio
 from logging import debug, info, warning, error, DEBUG, INFO, basicConfig
-from util.stun import nat_type_test, get_self_ip_port
-from util.port_forwarder import start_port_forward
-from util.motd import motd_query
+from nat1_traversal.util.stun import nat_type_test, get_self_ip_port
+from nat1_traversal.util.port_forwarder import start_port_forward
+from nat1_traversal.util.motd import motd_query
 
 def _convert_port(s_port: str, default: int) -> int:
     if not s_port:
@@ -63,7 +63,7 @@ def register_exit():
         else:
             info("用户退出")
             force_exit = True
-            exit(0)
+            sys.exit(0)
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
 
@@ -99,31 +99,31 @@ def main():
             "\n-t  --nat-type-test                       NAT类型测试（仅参考）"
             "\n-q  --query [[server ip]:[server port]]   MC服务器MOTD查询，省略ip时默认为127.0.0.1，省略port时默认为25565"
         , sys.argv[0])
-        exit(0)
+        sys.exit(0)
     if args.V:
-        info("1.0.1")
-        exit(0)
+        info("1.0.2")
+        sys.exit(0)
     if args.Q:
         status, msg = motd_query(*convert_addr(args.Q, "127.0.0.1"))
         if status:
             info(msg)
-            exit(0)
+            sys.exit(0)
         else:
             warning("服务器离线：%s", msg)
-            exit(1)
+            sys.exit(1)
     try:
         local_addr = convert_addr(args.L, "0.0.0.0")
     except ValueError as e:
         error("--local: %s", e)
         debug(traceback.format_exc())
-        exit(1)
+        sys.exit(1)
     if args.T:
         info("正在进行NAT类型测试")
         info("NAT%s", nat_type_test(local_addr)[1])
-        exit(0)
+        sys.exit(0)
     if not os.path.isfile(args.C):
         error("DDNS配置文件 %s 未找到" , os.path.abspath(args.C))
-        exit(1)
+        sys.exit(1)
     config = {
         "dns": "no_dns",
         "id": None,
@@ -143,14 +143,14 @@ def main():
     except Exception:
         error("DDNS配置文件 %s 读取失败", os.path.abspath(args.C))
         debug(traceback.format_exc())
-        exit(1)
+        sys.exit(1)
     try:
-        dns = importlib.import_module("dns/" + config["dns"])
+        dns = getattr(getattr(__import__("nat1_traversal.dns." + config["dns"]), "dns"), config["dns"])
         info("使用的DNS供应商为 %s", config["dns"])
     except Exception:
         error("不受支持的DNS供应商 %s", config["dns"])
         debug(traceback.format_exc())
-        exit(1)
+        sys.exit(1)
     dns.id = config["id"]
     dns.token = config["token"]
     try:
@@ -158,31 +158,31 @@ def main():
     except ValueError as e:
         error("--remote: %s", e)
         debug(traceback.format_exc())
-        exit(1)
+        sys.exit(1)
     if local_addr is None:
         error("缺少参数 --local")
-        exit(1)
+        sys.exit(1)
     register_exit()
+    def update_dns(ip: str, port: int):
+        nonlocal dns, config
+        info("获取到映射地址： %s:%s", ip, port)
+        for _ in range(3):
+            try:
+                dns.update_record(config["sub_domain"], config["domain"], "A", ip)
+                dns.update_record("_minecraft._tcp." + config["sub_domain"], config["domain"], "SRV", config["sub_domain"], port=port)
+                return
+            except ValueError as e:
+                error("DDNS更新失败： %s", e)
+                time.sleep(2)
+        sys.exit(1)
     if remote_addr is None:
-        def update_dns(ip: str, port: int):
-            nonlocal dns, config
-            info("获取到映射地址： %s:%s", ip, port)
-            for _ in range(3):
-                try:
-                    dns.update_record(config["sub_domain"], config["domain"], "A", ip)
-                    dns.update_record("_minecraft._tcp." + config["sub_domain"], config["domain"], "SRV", config["sub_domain"], port=port)
-                    return
-                except ValueError as e:
-                    error("DDNS更新失败： %s", e)
-                    time.sleep(2)
-            exit(1)
         while True:
             status, msg = motd_query("127.0.0.1", local_addr[1])
             if not status:
                 warning("服务器不在线, %s", msg)
                 time.sleep(10)
                 continue
-            ip, port = get_self_ip_port()
+            ip, port = get_self_ip_port(local_addr)
             threading.Thread(target=update_dns, args=(ip, port)).start()
             buff_tick = 0
             buff_msg = ""
@@ -201,7 +201,17 @@ def main():
                     buff_msg = msg
                     info("MOTD: %s", msg)
     else:
-        start_port_forward(*local_addr, *remote_addr, *get_self_ip_port(local_addr))
+        while True:
+            ip, port = get_self_ip_port(local_addr)
+            threading.Thread(target=update_dns, args=(ip, port)).start()
+            try:
+                start_port_forward(*local_addr, *remote_addr, ip, port)
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except:
+                warning("转发发生异常，可能是映射地址离线，开始重新转发")
+                debug(traceback.format_exc())
+                time.sleep(5)
 
 if __name__ == "__main__":
     main()

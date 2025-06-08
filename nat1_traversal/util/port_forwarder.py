@@ -3,8 +3,9 @@
 
 __author__ = "Guation"
 
-import asyncio
+import asyncio, traceback
 from logging import debug, info, warning, error, exception
+from .stun import new_tcp_socket
 
 async def forward(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     try:
@@ -53,8 +54,11 @@ async def handle_client_pong(local_reader: asyncio.StreamReader, local_writer: a
     except asyncio.CancelledError:
         pass
     except Exception:
-        exception(f"pong线程异常，可能是ping线程已离线")
-        exit(1)
+        error(f"pong线程异常，可能是ping线程已离线")
+        debug(traceback.format_exc())
+        global server
+        server.close()
+        await server.wait_closed()
     finally:
         local_writer.close()
 
@@ -68,21 +72,27 @@ async def client_ping(internet_ip: str, internet_port: int):
             await writer.drain()
             await reader.read(9999)
             await asyncio.sleep(1)
-    except Exception as e:
-        error(f"ping线程异常，无法连接到pong线程: {e}")
-        exit(1)
+    except Exception:
+        error(f"ping线程异常，无法连接到pong线程")
+        debug(traceback.format_exc())
+        global server
+        server.close()
+        await server.wait_closed()
     finally:
         if writer:
             writer.close()
             await writer.wait_closed()
 
 async def port_forward(local_host: str, local_port: int, remote_host: str, remote_port: int, call_host: str, call_port: int):
-    global g_handle_client
+    global g_handle_client, server
     g_handle_client = handle_client_pong
+    sock = new_tcp_socket()
+    sock.bind((local_host, local_port))
+    sock.listen()
+    sock.setblocking(False)
     server = await asyncio.start_server(
         lambda r, w: g_handle_client(r, w, remote_host, remote_port),
-        local_host,
-        local_port
+        sock = sock
     )
     asyncio.create_task(client_ping(call_host, call_port))
     async with server:
