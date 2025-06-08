@@ -48,9 +48,9 @@ ISP最常使用的NAT方案为NAPT(Network Address Port Translation)，而在进
 ### 命令行参数
 
 ```shell
-$ python3 nat1_traversal.py -h
+$ python3 nat1_traversal.pyz -h
 [    INFO] 
-nat1_traversal.py [-h] [-l] [-r] [-c] [-d] [-v] [-q]
+nat1_traversal.pyz [-h] [-l] [-r] [-c] [-d] [-v] [-q]
 -h  --help                                显示本帮助
 -l  --local [[local ip]:[local port]]     本地监听地址，省略ip时默认为0.0.0.0，省略port时默认为25565
 -r  --remote [[remote ip]:[remote port]]  转发目的地址，省略ip时默认为127.0.0.1，省略port时默认为25565
@@ -72,13 +72,13 @@ nat1_traversal.py [-h] [-l] [-r] [-c] [-d] [-v] [-q]
 1. 从Releases下载`NAT1_Traversal.tgz`或`NAT1_Traversal.zip`
 2. 右键压缩包选择“解压到NAT1_Traversal”
 3. 在`NAT1_Traversal`目录中按住`shift`并在空白处按右键，点击“在此处打开Powershell窗口”
-4. 执行`python nat1_traversal.py -t`
+4. 执行`python nat1_traversal.pyz -t`
 
 #### Linux/MacOS
 1. 从Releases下载`NAT1_Traversal.tgz`
 2. 打开命令行并`cd`到下载目录
 3. 使用`tar -xzvf NAT1_Traversal.tgz -C NAT1_Traversal ; cd NAT1_Traversal`
-3. 执行`python3 nat1_traversal.py -t`
+3. 执行`python3 nat1_traversal.pyz -t`
 
 #### 结果分析
 - 如果结果显示为`SYMMETRIC`则代表您无法使用本项目的核心功能。
@@ -106,7 +106,7 @@ nat1_traversal.py [-h] [-l] [-r] [-c] [-d] [-v] [-q]
 
 Windows使用`.\NAT1_Traversal.exe -t -l :25565`
 
-MacOS/Linux使用`python3 NAT1_Traversal.py -t -l :25565`
+MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 
 此时如果测试结果为`FULL CONE`则代表您已完成配置，可进行开服。
 
@@ -144,7 +144,7 @@ MacOS/Linux使用`python3 NAT1_Traversal.py -t -l :25565`
 
 然后像往常一样启动服务器，如果您在日志中看见类似`Hooked bind: PID=1234, FD=5, setsockopt SO_REUSEPORT`的日志则代表修改已生效。
 
-使用`python3 nat1_traversal.py -l :25565`，如果一切顺利，那么您将能使用`config.json`中配置的域名进服。
+使用`python3 nat1_traversal.pyz -l :25565`，如果一切顺利，那么您将能使用`config.json`中配置的域名进服。
 
 如果您的dns供应商设置为了`no_dns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:xxxx`的记录，可复制该地址连接到服务器。
 
@@ -157,7 +157,7 @@ MacOS/Linux使用`python3 NAT1_Traversal.py -t -l :25565`
 
 Windows使用`.\nat1_traversal.exe -l :25565 -r :25566`
 
-MacOS/Linux使用`python3 nat1_traversal.py -l :25565 -r :25566`
+MacOS/Linux使用`python3 nat1_traversal.pyz -l :25565 -r :25566`
 
 如果一切顺利，那么您将能使用`config.json`中配置的域名进服。
 
