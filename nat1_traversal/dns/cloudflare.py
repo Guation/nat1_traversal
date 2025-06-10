@@ -83,6 +83,6 @@ def update_record(sub_domain: str, domain: str, record_type: str, value: str, /,
     zoneid = search_zoneid(domain)
     recordid = search_recordid(sub_domain, zoneid)
     if recordid is None: # 新建
-        return request("POST", "/zones/%d/dns_records" % zoneid, payload)
+        return request("POST", "/zones/%s/dns_records" % zoneid, payload)
     else: # 更新
-        return request("PATCH", "/zones/%d/dns_records/%d" % (zoneid, recordid), payload)
+        return request("PATCH", "/zones/%s/dns_records/%s" % (zoneid, recordid), payload)

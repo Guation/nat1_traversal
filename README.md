@@ -162,3 +162,22 @@ MacOS/Linux使用`python3 nat1_traversal.pyz -l :25565 -r :25566`
 如果一切顺利，那么您将能使用`config.json`中配置的域名进服。
 
 如果您的dns供应商设置为了`no_dns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:xxxx`的记录，可复制该地址连接到服务器。
+
+### 构建
+#### Linux
+```
+python3 -m venv venv
+source venv/bin/activate
+git clone https://github.com/Guation/nat1_traversal.git
+cd nat1_traversal
+pip install shiv wheel
+shiv -e nat1_traversal.nat1_traversal:main -o nat1_traversal.pyz .
+```
+
+#### Windows
+```
+git clone https://github.com/Guation/nat1_traversal.git
+cd nat1_traversal
+pip install pyinstaller requests
+pyinstaller --onefile --add-data "nat1_traversal:nat1_traversal" --name nat1_traversal nat1_traversal/nat1_traversal.py --hidden-import requests
+```
