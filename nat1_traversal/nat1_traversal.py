@@ -92,16 +92,19 @@ def main():
             "\n%s [-h] [-l] [-r] [-c] [-d] [-v] [-q]"
             "\n-h  --help                                显示本帮助"
             "\n-l  --local [[local ip]:[local port]]     本地监听地址，省略ip时默认为0.0.0.0，省略port时默认为25565"
+            "\n                                          此字段将覆盖config.json中的local字段"
             "\n-r  --remote [[remote ip]:[remote port]]  转发目的地址，省略ip时默认为127.0.0.1，省略port时默认为25565"
+            "\n                                          此字段将覆盖config.json中的remote字段"
             "\n-c  --config <config.json>                DDNS配置文件"
             "\n-d  --debug                               Debug模式"
             "\n-v  --version                             显示版本"
             "\n-t  --nat-type-test                       NAT类型测试（仅参考）"
             "\n-q  --query [[server ip]:[server port]]   MC服务器MOTD查询，省略ip时默认为127.0.0.1，省略port时默认为25565"
+            "\n                                          此字段暂不支持A/SRV记录查询"
         , sys.argv[0])
         sys.exit(0)
     if args.V:
-        info("1.0.2")
+        info("1.0.3")
         sys.exit(0)
     if args.Q:
         status, msg = motd_query(*convert_addr(args.Q, "127.0.0.1"))
@@ -114,7 +117,8 @@ def main():
     try:
         local_addr = convert_addr(args.L, "0.0.0.0")
     except ValueError as e:
-        error("--local: %s", e)
+        error("参数 --local 解析错误: %s", e)
+        error("查看帮助： %s --help", sys.argv[0])
         debug(traceback.format_exc())
         sys.exit(1)
     if args.T:
@@ -129,19 +133,26 @@ def main():
         "id": None,
         "token": None,
         "domain": "",
-        "sub_domain": ""
+        "sub_domain": "",
+        "local": None,
+        "remote": None
     }
     try:
         with open(args.C, "r") as f:
             config_s1 = f.read()
             config.update(json.loads(config_s1))
+    except Exception:
+        error("DDNS配置文件 %s 读取失败", os.path.abspath(args.C))
+        debug(traceback.format_exc())
+        sys.exit(1)
+    try:
         config_s2 = json.dumps(config, indent=4, ensure_ascii=False)
         if config_s1 != config_s2:
             with open(args.C, "w") as f:
                 f.write(config_s2)
                 f.flush()
     except Exception:
-        error("DDNS配置文件 %s 读取失败", os.path.abspath(args.C))
+        error("DDNS配置文件 %s 回写失败", os.path.abspath(args.C))
         debug(traceback.format_exc())
         sys.exit(1)
     try:
@@ -156,11 +167,27 @@ def main():
     try:
         remote_addr = convert_addr(args.R, "127.0.0.1")
     except ValueError as e:
-        error("--remote: %s", e)
+        error("参数 --remote 解析错误: %s", e)
+        error("查看帮助： %s --help", sys.argv[0])
         debug(traceback.format_exc())
         sys.exit(1)
     if local_addr is None:
+        try:
+            local_addr = convert_addr(config["local"], "0.0.0.0")
+        except ValueError as e:
+            error("config 中 local 字段解析错误: %s", e)
+            debug(traceback.format_exc())
+            sys.exit(1)
+    if remote_addr is None:
+        try:
+            remote_addr = convert_addr(config["remote"], "127.0.0.1")
+        except ValueError as e:
+            error("config 中 remote 字段解析错误: %s", e)
+            debug(traceback.format_exc())
+            sys.exit(1)
+    if local_addr is None:
         error("缺少参数 --local")
+        error("查看帮助： %s --help", sys.argv[0])
         sys.exit(1)
     register_exit()
     def update_dns(ip: str, port: int):

@@ -62,6 +62,7 @@ def update_record(sub_domain: str, domain: str, record_type: str, value: str, /,
         raise ValueError(
             "不支持记录类型%s" % record_type
         )
+    sub_domain = f"{sub_domain}.{domain}"
     payload = {
         "name": sub_domain,
         "proxied": False,
@@ -77,7 +78,7 @@ def update_record(sub_domain: str, domain: str, record_type: str, value: str, /,
                 "priority": params.get("priority", 10),
                 "weight": params.get("weight", 0),
                 "port": params["port"],
-                "target": value,
+                "target": f"{value}.{domain}",
             }
         })
     zoneid = search_zoneid(domain)

@@ -3,5 +3,7 @@
     "id": null,
     "token": null,
     "domain": "",
-    "sub_domain": ""
+    "sub_domain": "",
+    "local": null,
+    "remote": null
 }
