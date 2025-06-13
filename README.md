@@ -53,12 +53,15 @@ $ python3 nat1_traversal.pyz -h
 nat1_traversal.pyz [-h] [-l] [-r] [-c] [-d] [-v] [-q]
 -h  --help                                显示本帮助
 -l  --local [[local ip]:[local port]]     本地监听地址，省略ip时默认为0.0.0.0，省略port时默认为25565
+                                          此字段将覆盖config.json中的local字段
 -r  --remote [[remote ip]:[remote port]]  转发目的地址，省略ip时默认为127.0.0.1，省略port时默认为25565
+                                          此字段将覆盖config.json中的remote字段
 -c  --config <config.json>                DDNS配置文件
 -d  --debug                               Debug模式
 -v  --version                             显示版本
 -t  --nat-type-test                       NAT类型测试（仅参考）
--q  --query [[server ip]:[server port]]   Minecraft: Java Edition服务器MOTD查询，省略ip时默认为127.0.0.1，省略port时默认为25565
+-q  --query [[server ip]:[server port]]   MC服务器MOTD查询，省略ip时默认为127.0.0.1，省略port时默认为25565
+                                          此字段暂不支持A/SRV记录查询
 ```
 
 ### NAT类型检测
@@ -92,6 +95,10 @@ nat1_traversal.pyz [-h] [-l] [-r] [-c] [-d] [-v] [-q]
 ### \(PORT\) RESTRICTED CONE 改 FULL CONE
 #### 配置端口映射规则
 
+当您的测试结果显示为`PORT RESTRICTED CONE`时可能并不代表运营商的NAT等级为`PORT RESTRICTED CONE`，
+
+可能是由于光猫/路由器的防火墙使其表现行为与`PORT RESTRICTED CONE`一致。
+
 您可以在光猫/路由器背面的铭牌中找到设备默认的管理地址和默认的管理员账户及密码。
 
 部分路由器会要求您在首次登录时更改管理员密码，请以实际情况为准。
@@ -117,17 +124,21 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 
 - id: 您登录dns管理界面的登录邮箱或者用户名，有些供应商无需提供此字段，此时值应为`null`
 
-- token: 这是dns供应商给您的令牌
+- token: 这是您在dns供应商处生成的管理令牌，请确保其对domain有管理权限
 
 - domain: 您托管在dns供应商处的主域名，例如`example.com`
 
 - sub_domain: 您想要绑定的子域名，此字段不包含主域名。例如您希望使用`mc.example.com`进服，那么您应该填入`mc`
 
+- local: 本地监听地址，与命令行指令`--local`一致，优先级低于`--local`
+
+- remote: 转发目的地址，与命令行指令`--remote`一致，优先级低于`--remote`
+
 #### id和token的获取方法
 
-- [cloudflare](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/)
+- [cloudflare](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/) 推荐使用`API Token`作为token而将id留空，请确保token具有指定zone的edit权限
 
-- [dynv6](https://dynv6.com/keys)
+- [dynv6](https://dynv6.com/keys) 使用`HTTP Tokens`作为token将id留空，推荐设置为仅对指定zone有效
 
 
 ### 开服
@@ -147,6 +158,20 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 使用`python3 nat1_traversal.pyz -l :25565`，如果一切顺利，那么您将能使用`config.json`中配置的域名进服。
 
 如果您的dns供应商设置为了`no_dns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:xxxx`的记录，可复制该地址连接到服务器。
+
+⚠️警告：
+
+由于此方案解除了单一进程对于一个端口的独占行为，
+
+您可能会遇到多个MC服务器同时监听同一端口而**不会抛出**端口已被占用的提示，
+
+此时您使用游戏客户端连接服务器时Linux内核将随机将您分配到其中一个服务器中，
+
+此功能原本是用于均衡负责，但此时可能会造成多名玩家登录到不同服务器而无法观察到对方的混乱，
+
+请您在运行MC服务器之前检查目标端口是否已被使用，避免多个MC服务器共用同一端口的行为。
+
+如果出现了多个MC服务器共用同一端口的情况，本项目可能会误认为服务器MOTD在不断更新而不停在日志中输出MOTD。
 
 #### Windows/MacOS/Linux
 在不可使用Linux 3.9+的`SO_REUSEPORT`时，我们可以让NAT1 Traversal作为中间代理转发我们的MC服务器流量。
