@@ -202,5 +202,5 @@ shiv -e nat1_traversal.nat1_traversal:main -o nat1_traversal.pyz .
 git clone https://github.com/Guation/nat1_traversal.git
 cd nat1_traversal
 pip install pyinstaller requests
-pyinstaller --onefile --add-data "nat1_traversal:nat1_traversal" --name nat1_traversal nat1_traversal/nat1_traversal.py --hidden-import requests
+pyinstaller nat1_traversal.spec
 ```

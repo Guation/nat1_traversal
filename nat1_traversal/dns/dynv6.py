@@ -9,8 +9,8 @@ __all__ = ["update_record", "id", "token"]
 import requests
 from logging import debug, info, warning, error
 
-id = None
-token = None
+id: str = None
+token: str = None
 
 def request(method: str, action: str, params: dict = None):
     global token

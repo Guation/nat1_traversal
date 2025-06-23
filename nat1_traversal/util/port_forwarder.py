@@ -3,9 +3,14 @@
 
 __author__ = "Guation"
 
-import asyncio, traceback
+import asyncio, traceback, os, sys
 from logging import debug, info, warning, error, exception
 from .stun import new_tcp_socket
+
+def stop():
+    sys.stderr.flush()
+    sys.stdout.flush()
+    os._exit(0)
 
 async def forward(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     try:
@@ -18,7 +23,8 @@ async def forward(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     except asyncio.CancelledError:
         pass
     except Exception:
-        exception(f"转发错误")
+        error(f"转发错误")
+        debug(traceback.format_exc())
     finally:
         writer.close()
 
@@ -36,7 +42,8 @@ async def handle_client(local_reader: asyncio.StreamReader, local_writer: asynci
         await asyncio.gather(local_to_remote, remote_to_local)
         info(f"客户端 {client_address[0]}:{client_address[1]} 断开连接")
     except Exception:
-        exception(f"转发错误，客户端 {client_address[0]}:{client_address[1]} 无法连接到 {remote_host}:{remote_port}")
+        error(f"转发错误，客户端 {client_address[0]}:{client_address[1]} 无法连接到 {remote_host}:{remote_port}")
+        debug(traceback.format_exc())
     finally:
         local_writer.close()
 
@@ -46,7 +53,7 @@ async def handle_client_pong(local_reader: asyncio.StreamReader, local_writer: a
     info("开始pong线程")
     try:
         while True:
-            data = await local_reader.read(4096)
+            data = await asyncio.wait_for(local_reader.read(4096), timeout=15)
             if not data:
                 break
             local_writer.write(b"pong")
@@ -56,35 +63,29 @@ async def handle_client_pong(local_reader: asyncio.StreamReader, local_writer: a
     except Exception:
         error(f"pong线程异常，可能是ping线程已离线")
         debug(traceback.format_exc())
-        global server
-        server.close()
-        await server.wait_closed()
+        stop()
     finally:
         local_writer.close()
 
 async def client_ping(internet_ip: str, internet_port: int):
     info("开始ping线程")
-    reader, writer = None, None
     try:
-        reader, writer = await asyncio.wait_for(asyncio.open_connection(internet_ip, internet_port), timeout=5)
-        while True:
-            writer.write(b"ping")
-            await writer.drain()
-            await reader.read(9999)
-            await asyncio.sleep(1)
+        reader, writer = await asyncio.wait_for(asyncio.open_connection(internet_ip, internet_port), timeout=3)
+        try:
+            while True:
+                writer.write(b"ping")
+                await writer.drain()
+                await asyncio.wait_for(reader.read(9999), timeout=3)
+                await asyncio.sleep(1)
+        finally:
+            writer.close()
     except Exception:
         error(f"ping线程异常，无法连接到pong线程")
         debug(traceback.format_exc())
-        global server
-        server.close()
-        await server.wait_closed()
-    finally:
-        if writer:
-            writer.close()
-            await writer.wait_closed()
+        stop()
 
 async def port_forward(local_host: str, local_port: int, remote_host: str, remote_port: int, call_host: str, call_port: int):
-    global g_handle_client, server
+    global g_handle_client
     g_handle_client = handle_client_pong
     sock = new_tcp_socket()
     sock.bind((local_host, local_port))
@@ -100,4 +101,7 @@ async def port_forward(local_host: str, local_port: int, remote_host: str, remot
         await server.serve_forever()
 
 def start_port_forward(local_host: str, local_port: int, remote_host: str, remote_port: int, call_host: str, call_port: int):
-    asyncio.run(port_forward(local_host, local_port, remote_host, remote_port, call_host, call_port))
+    try:
+        asyncio.run(port_forward(local_host, local_port, remote_host, remote_port, call_host, call_port))
+    except (KeyboardInterrupt, SystemExit):
+        return # 捕获到之后正常退出 避免栈被multiprocessing捕捉

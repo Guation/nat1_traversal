@@ -5,52 +5,12 @@
 
 __author__ = "Guation"
 
-import os, argparse, sys, json, traceback, socket, time, threading, asyncio
+import os, argparse, sys, json, traceback, socket, time, threading, multiprocessing
 from logging import debug, info, warning, error, DEBUG, INFO, basicConfig
 from nat1_traversal.util.stun import nat_type_test, get_self_ip_port
 from nat1_traversal.util.port_forwarder import start_port_forward
 from nat1_traversal.util.motd import motd_query
-
-def _convert_port(s_port: str, default: int) -> int:
-    if not s_port:
-        return default
-    try:
-        i_port = int(s_port)
-    except ValueError as e:
-        raise ValueError(
-            "端口不是数字"
-        ) from e
-    if i_port >= 0 and i_port <= 65535:
-        return i_port
-    else:
-        raise ValueError(
-            "端口应该在0-65535之间"
-        )
-
-def _convert_ip(ip: str, default: str) -> str:
-    if not ip:
-        return default
-    try:
-        return socket.inet_ntoa(socket.inet_aton(ip))
-    except OSError as e:
-        raise ValueError(
-            "IP格式错误"
-        ) from e
-
-def convert_addr(addr, default_ip):
-    # type: (str | None, str) -> socket._RetAddress | None
-    if addr is None:
-        return None
-    addr = addr.strip()
-    if not addr:
-        return None
-    tmp = addr.split(":")
-    if len(tmp) == 2:
-        return (_convert_ip(tmp[0], default_ip), _convert_port(tmp[1], 25565))
-    else:
-        raise ValueError(
-            "地址格式错误"
-        )
+from nat1_traversal.util.addr_tool import convert_addr
 
 def register_exit():
     import signal
@@ -67,6 +27,36 @@ def register_exit():
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
 
+def init_logger(debug: bool) -> None:
+    if debug:
+        basicConfig(
+            level=DEBUG,
+            format='[%(levelname)8s] %(asctime)s <%(module)s.%(funcName)s>:%(lineno)d\n[%(levelname)8s] %(message)s')
+    else:
+        basicConfig(
+            level=INFO,
+            format='[%(levelname)8s] %(message)s')
+
+class logger_filter:
+    def __init__(self, max_tick: int):
+        self.buff_tick = 0
+        self.buff_msg = ""
+        self.max_tick = max_tick
+
+    def __call__(self, msg) -> bool:
+        self.buff_tick += 1
+        if self.buff_msg == msg and self.buff_tick < self.max_tick:
+            return False
+        else:
+            self.buff_tick = 0
+            self.buff_msg = msg
+            return True
+
+def forward_main(local_addr, remote_addr, mapped_addr, debug):
+    # type: (socket._Address, socket._Address, socket._Address, bool) -> None
+    init_logger(debug)
+    start_port_forward(*local_addr, *remote_addr, *mapped_addr)
+
 def main():
     parser = argparse.ArgumentParser(description='NAT1 Traversal', add_help=False, allow_abbrev=False, usage=argparse.SUPPRESS)
     parser.add_argument('-h', '--help', dest='H', action='store_true')
@@ -79,14 +69,8 @@ def main():
     parser.add_argument('-q', '--query', dest='Q', type=str, nargs='?', const=':')
     args = parser.parse_args()
 
-    if args.D:
-        basicConfig(
-            level=DEBUG,
-            format='[%(levelname)8s] %(asctime)s <%(module)s.%(funcName)s>:%(lineno)d\n[%(levelname)8s] %(message)s')
-    else:
-        basicConfig(
-            level=INFO,
-            format='[%(levelname)8s] %(message)s')
+    init_logger(args.D)
+
     if args.H:
         info(
             "\n%s [-h] [-l] [-r] [-c] [-d] [-v] [-q]"
@@ -104,7 +88,7 @@ def main():
         , sys.argv[0])
         sys.exit(0)
     if args.V:
-        info("1.0.3")
+        info("1.0.4")
         sys.exit(0)
     if args.Q:
         status, msg = motd_query(*convert_addr(args.Q, "127.0.0.1"))
@@ -152,9 +136,8 @@ def main():
                 f.write(config_s2)
                 f.flush()
     except Exception:
-        error("DDNS配置文件 %s 回写失败", os.path.abspath(args.C))
+        warning("DDNS配置文件 %s 回写失败", os.path.abspath(args.C))
         debug(traceback.format_exc())
-        sys.exit(1)
     try:
         dns = getattr(getattr(__import__("nat1_traversal.dns." + config["dns"]), "dns"), config["dns"])
         info("使用的DNS供应商为 %s", config["dns"])
@@ -200,45 +183,51 @@ def main():
                 return
             except ValueError as e:
                 error("DDNS更新失败： %s", e)
-                time.sleep(2)
-        sys.exit(1)
+                time.sleep(3)
     if remote_addr is None:
+        local_online_filter = logger_filter(60) # 相同日志60次合并成1次
         while True:
             status, msg = motd_query("127.0.0.1", local_addr[1])
             if not status:
-                warning("服务器不在线, %s", msg)
+                if local_online_filter(msg):
+                    warning("服务器不在线, %s", msg)
                 time.sleep(10)
                 continue
-            ip, port = get_self_ip_port(local_addr)
-            threading.Thread(target=update_dns, args=(ip, port)).start()
-            buff_tick = 0
-            buff_msg = ""
+            try:
+                mapped_addr = get_self_ip_port(local_addr)
+            except ValueError as e:
+                error("获取映射地址失败：%s", e)
+                debug(traceback.format_exc())
+                time.sleep(10)
+                continue
+            threading.Thread(target=update_dns, args=mapped_addr).start()
+            remote_online_filter = logger_filter(1800)
             while True:
                 time.sleep(1)
-                status, msg = motd_query(ip, port)
+                status, msg = motd_query(*mapped_addr)
                 if not status:
                     warning("映射地址离线，开始重新映射，%s", msg)
                     break
                 else:
-                    if buff_msg == msg:
-                        buff_tick += 1
-                        if buff_tick < 1800:
-                            continue
-                    buff_tick = 0
-                    buff_msg = msg
-                    info("MOTD: %s", msg)
+                    if remote_online_filter(msg):
+                        info("MOTD: %s", msg)
     else:
+        multiprocessing.set_start_method("spawn")
         while True:
-            ip, port = get_self_ip_port(local_addr)
-            threading.Thread(target=update_dns, args=(ip, port)).start()
             try:
-                start_port_forward(*local_addr, *remote_addr, ip, port)
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except:
-                warning("转发发生异常，可能是映射地址离线，开始重新转发")
+                mapped_addr = get_self_ip_port(local_addr)
+            except ValueError as e:
+                error("获取映射地址失败：%s", e)
                 debug(traceback.format_exc())
-                time.sleep(5)
+                time.sleep(10)
+                continue
+            threading.Thread(target=update_dns, args=mapped_addr).start()
+            forward_process = multiprocessing.Process(target=forward_main, args=(local_addr, remote_addr, mapped_addr, args.D), daemon=True)
+            forward_process.start()
+            forward_process.join()
+            warning("转发发生异常，可能是映射地址离线，开始重新转发")
+            time.sleep(5)
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     main()

@@ -125,23 +125,23 @@ def get_self_ip_port(local):
     # type: (socket._Address) -> socket._RetAddress
     return single_test((STUN_HOST, STUN_PORT), local)[2]
 
-def _loop_connect_test(local, remote, timeout = 1):
-    # type: (socket._Address, socket._Address, int) -> bool
+def _loop_connect_test(local, remote):
+    # type: (socket._Address, socket._Address) -> bool
     import threading
     test_data = os.urandom(16)
     def helper():
-        nonlocal test_data, remote, timeout
+        nonlocal test_data, remote
         try:
             with new_tcp_socket() as sock:
-                sock.settimeout(timeout)
+                sock.settimeout(1)
                 sock.connect(remote)
                 sock.send(test_data)
         except (socket.timeout, ConnectionError):
-            pass
+            debug(traceback.format_exc())
 
     try:
         with new_tcp_socket() as sock:
-            sock.settimeout(timeout)
+            sock.settimeout(2)
             sock.bind(local)
             sock.listen(1)
             threading.Thread(target=helper).start()
@@ -151,6 +151,7 @@ def _loop_connect_test(local, remote, timeout = 1):
             else:
                 return False
     except socket.timeout:
+        debug(traceback.format_exc())
         return False
 
 def _loop_connect(local, remote, timeout = 1):
@@ -161,7 +162,7 @@ def _loop_connect(local, remote, timeout = 1):
             sock.bind(local)
             sock.connect(remote)
     except socket.timeout:
-        pass
+        debug(traceback.format_exc())
 
 def nat_type_test(local = None):
     # type: (socket._Address) -> tuple[bool, int]
