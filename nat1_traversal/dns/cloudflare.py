@@ -5,26 +5,31 @@
 # https://developers.cloudflare.com/api/resources/zones/
 
 __author__ = "Guation"
-__all__ = ["update_record", "id", "token"]
+__all__ = ["update_record", "init"]
 
 import requests
 from logging import debug, info, warning, error
 
-id: str = None
-token: str = None
+__id: str = None
+__token: str = None
+
+def init(id: str, token: str):
+    global __id, __token
+    __id = id
+    __token = token
 
 def request(method: str, action: str, params: dict = None):
-    global token
-    if id is None:
+    global __id, __token
+    if __id is None:
         headers = {
             "Content-type": "application/json",
-            "Authorization": "Bearer " + token,
+            "Authorization": "Bearer " + __token,
         }
     else:
         headers = {
             "Content-type": "application/json",
-            "X-Auth-Email": id,
-            "X-Auth-Key": token,
+            "X-Auth-Email": __id,
+            "X-Auth-Key": __token,
         }
     debug("method=%s, action=%s, params=%s, headers=%s", method, action, params, headers)
     response = requests.request(method, "https://api.cloudflare.com/client/v4" + action, json=params, headers=headers)

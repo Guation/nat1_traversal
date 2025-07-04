@@ -1,4 +1,5 @@
 {
+    "type": "mcje",
     "dns": "cloudflare",
     "id": "user@example.com",
     "token": "xxx",

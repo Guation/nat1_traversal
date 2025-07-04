@@ -7,10 +7,12 @@ __author__ = "Guation"
 
 import os, argparse, sys, json, traceback, socket, time, threading, multiprocessing
 from logging import debug, info, warning, error, DEBUG, INFO, basicConfig
-from nat1_traversal.util.stun import nat_type_test, get_self_ip_port
+from nat1_traversal.util.stun import nat_type_test, get_self_ip_port, addr_available
 from nat1_traversal.util.port_forwarder import start_port_forward
-from nat1_traversal.util.motd import motd_query
-from nat1_traversal.util.addr_tool import convert_addr
+from nat1_traversal.util.motd import mcje_query, srv_query, tcp_query
+from nat1_traversal.util.addr_tool import convert_addr, convert_mc_host
+
+VERSION = "1.0.5"
 
 def register_exit():
     import signal
@@ -83,15 +85,14 @@ def main():
             "\n-d  --debug                               Debug模式"
             "\n-v  --version                             显示版本"
             "\n-t  --nat-type-test                       NAT类型测试（仅参考）"
-            "\n-q  --query [[server ip]:[server port]]   MC服务器MOTD查询，省略ip时默认为127.0.0.1，省略port时默认为25565"
-            "\n                                          此字段暂不支持A/SRV记录查询"
+            "\n-q  --query [<server host>[:server port]] MC服务器MOTD查询，省略host时默认为127.0.0.1，省略port时默认为25565"
         , sys.argv[0])
         sys.exit(0)
     if args.V:
-        info("1.0.4")
+        info(VERSION)
         sys.exit(0)
     if args.Q:
-        status, msg = motd_query(*convert_addr(args.Q, "127.0.0.1"))
+        status, msg = mcje_query(*srv_query("_minecraft._tcp.", *convert_mc_host(args.Q, 25565)))
         if status:
             info(msg)
             sys.exit(0)
@@ -113,6 +114,7 @@ def main():
         error("DDNS配置文件 %s 未找到" , os.path.abspath(args.C))
         sys.exit(1)
     config = {
+        "type": "mcje",
         "dns": "no_dns",
         "id": None,
         "token": None,
@@ -145,8 +147,7 @@ def main():
         error("不受支持的DNS供应商 %s", config["dns"])
         debug(traceback.format_exc())
         sys.exit(1)
-    dns.id = config["id"]
-    dns.token = config["token"]
+    dns.init(config["id"], config["token"])
     try:
         remote_addr = convert_addr(args.R, "127.0.0.1")
     except ValueError as e:
@@ -172,14 +173,36 @@ def main():
         error("缺少参数 --local")
         error("查看帮助： %s --help", sys.argv[0])
         sys.exit(1)
+    if remote_addr is None and local_addr[1] == 0:
+        error("共端口模式port不能为0")
+        sys.exit(1)
+    try:
+        local_addr = addr_available(local_addr)
+    except ValueError as e:
+        error("local地址不可用：%s", e)
+        debug(traceback.format_exc())
+        sys.exit(1)
+    if config["type"] == "mcje":
+        srv_prefix = "_minecraft._tcp."
+        query_function = mcje_query
+    elif config["type"] == "web":
+        srv_prefix = "_web._tcp."
+        query_function = tcp_query
+    elif config["type"] == "tcp":
+        srv_prefix = "_tcp."
+        query_function = tcp_query
+    else:
+        error("不支持的type: %s", config["type"])
+        sys.exit(1)
+        return
     register_exit()
     def update_dns(ip: str, port: int):
-        nonlocal dns, config
+        nonlocal dns, config, srv_prefix
         info("获取到映射地址： %s:%s", ip, port)
         for _ in range(3):
             try:
                 dns.update_record(config["sub_domain"], config["domain"], "A", ip)
-                dns.update_record("_minecraft._tcp." + config["sub_domain"], config["domain"], "SRV", config["sub_domain"], port=port)
+                dns.update_record(srv_prefix + config["sub_domain"], config["domain"], "SRV", config["sub_domain"], port=port)
                 return
             except ValueError as e:
                 error("DDNS更新失败： %s", e)
@@ -187,7 +210,7 @@ def main():
     if remote_addr is None:
         local_online_filter = logger_filter(60) # 相同日志60次合并成1次
         while True:
-            status, msg = motd_query("127.0.0.1", local_addr[1])
+            status, msg = query_function("127.0.0.1", local_addr[1])
             if not status:
                 if local_online_filter(msg):
                     warning("服务器不在线, %s", msg)
@@ -204,7 +227,7 @@ def main():
             remote_online_filter = logger_filter(1800)
             while True:
                 time.sleep(1)
-                status, msg = motd_query(*mapped_addr)
+                status, msg = query_function(*mapped_addr)
                 if not status:
                     warning("映射地址离线，开始重新映射，%s", msg)
                     break

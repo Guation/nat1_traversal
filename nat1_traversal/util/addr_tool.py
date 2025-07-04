@@ -45,3 +45,22 @@ def convert_addr(addr, default_ip):
         raise ValueError(
             "地址格式错误"
         )
+
+def convert_mc_host(addr, default_port):
+    # type: (str | None, int) -> socket._RetAddress
+    if addr is None:
+        return ("127.0.0.1", default_port)
+    addr = addr.strip()
+    if not addr:
+        return ("127.0.0.1", default_port)
+    tmp = addr.split(":")
+    if len(tmp) == 2:
+        if not tmp[0]:
+            return ("127.0.0.1", _convert_port(tmp[1], default_port))
+        return (tmp[0], _convert_port(tmp[1], default_port))
+    elif len(tmp) == 1:
+        return (tmp[0], default_port)
+    else:
+        raise ValueError(
+            "地址格式错误"
+        )

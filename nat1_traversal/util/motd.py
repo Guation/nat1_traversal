@@ -3,7 +3,8 @@
 
 # https://github.com/FragLand/minestat/blob/master/Python/minestat/__init__.py
 
-import socket, struct, json, traceback
+import socket, struct, json, traceback, requests
+import dns.resolver as resolver
 from logging import debug, info, warning, error
 from .stun import new_tcp_socket
 
@@ -70,7 +71,18 @@ def description2str(data):
             out += description2str(i)
     return out
 
-def motd_query(address, port):
+def srv_query(srv_prefix, address, port):
+    # type: (str, str, int) -> tuple[str, int]
+    try:
+        srv_record = resolver.resolve(srv_prefix + address, "SRV")[0]
+        debug("SRV record %s", srv_record)
+        port = int(srv_record.port)
+        address = str(srv_record.target)[:-1]
+    except (resolver.dns.exception.DNSException, OSError):
+        debug("query srv record fail.\n%s", traceback.format_exc())
+    return (address, port)
+
+def mcje_query(address, port):
     # type: (str, int) -> tuple[bool, str]
     """
     Method for querying a modern (MC Java >= 1.7) server with the SLP protocol.
@@ -176,3 +188,20 @@ def motd_query(address, port):
         return False, "motd parse fail."
 
     return True, json.dumps(out_dict, ensure_ascii = False)
+
+def tcp_query(address, port):
+    # type: (str, int) -> tuple[bool, str]
+    sock = new_tcp_socket()
+    sock.settimeout(10)
+    try:
+        sock.connect((address, port))
+    except socket.timeout:
+        debug("connect timeout\n%s", traceback.format_exc())
+        return False, 'timeout'
+    except ConnectionRefusedError:
+        debug("connect error\n%s", traceback.format_exc())
+        return False, 'connect fail'
+    except OSError:
+        debug("os error\n%s", traceback.format_exc())
+        return False, 'OSError'
+    return True, 'port available confirm.'

@@ -122,7 +122,17 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 ### 修改 config.json 文件中的dns配置信息
 对于不同dns供应商，我们都提供了形如`config.供应商名.json`的配置模板以供参考，您可以使用`-c /path/to/your_config.json`的方法指定您的配置路径，也可以默认使用当前目录下的`config.json`。
 #### 字段解释
-- dns: dns供应商名称，目前支持`cloudflare`和`dynv6`，以及一个不使用dns的`no_dns`
+- type: 映射的服务类型
+  - mcje: JAVA版Minecraft，端口绑定到`_minecraft._tcp.`（默认）
+  - mcbe: 基岩版Minecraft，端口绑定到`_minecraft._udp.`（暂未实现）
+  - web: HTTP/HTTPS网站，端口绑定到`_web._tcp.`
+  - tcp: 通用TCP应用，端口绑定到`_tcp.`
+  - udp: 通用UDP应用，端口绑定到`_udp.`（暂未实现）
+
+- dns: dns供应商名称
+  - cloudflare
+  - dynv6
+  - no_dns: 不使用dns（默认）
 
 - id: 您登录dns管理界面的登录邮箱或者用户名，有些供应商无需提供此字段，此时值应为`null`
 
@@ -143,9 +153,13 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 - [dynv6](https://dynv6.com/keys) 使用`HTTP Tokens`作为token将id留空，推荐设置为仅对指定zone有效
 
 
-### 开服
-#### Linux 3.9+
-利用[Linux内核在3.9](https://lwn.net/Articles/542629/)引入的`SO_REUSEPORT`特性可以使多个应用程序监听同一端口，也就是意味着我们可以在MC服务器正在运行的同时使用和MC服务器相同的端口去申请并维持一个`TCP`内外端口的映射关系。
+### Minecraft: Java Edition 开服
+#### Linux 3.9+ 共端口模式 {mcje1}
+利用[Linux内核在3.9](https://lwn.net/Articles/542629/)引入的`SO_REUSEPORT`特性可以使多个应用程序监听同一端口，
+
+也就是意味着我们可以在MC服务器正在运行的同时使用和MC服务器相同的端口去申请并维持一个`TCP`内外端口的映射关系。
+
+> 多个应用程序监听同一端口不仅都需要设置`SO_REUSEPORT`还需要应用程序都为同一用户运行。任意条件不满足后运行的应用程序都会抛出端口被占用的提示。
 
 由于MC服务器本身未配置`SO_REUSEPORT`，我们需要使用Linux的`LD_PRELOAD`机制对JAVA的`bind`函数进行hook操作，使其在监听端口时激活`SO_REUSEPORT`特性。
 
@@ -169,7 +183,7 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 > 请您在运行MC服务器之前检查目标端口是否已被使用，避免多个MC服务器共用同一端口的行为。
 > 如果出现了多个MC服务器共用同一端口的情况，本项目可能会误认为服务器MOTD在不断更新而不停在日志中输出MOTD。
 
-#### Windows/MacOS/Linux
+#### Windows/MacOS/Linux 转发模式 {mcje2}
 在不可使用Linux 3.9+的`SO_REUSEPORT`时，我们可以让NAT1 Traversal作为中间代理转发我们的MC服务器流量。
 
 此时您在mc服务器控制台将看到所有玩家均从`127.0.0.1`登录，您可以使用端口号和NAT1 Traversal日志判断用户来源ip。
@@ -188,6 +202,42 @@ MacOS/Linux使用`python3 nat1_traversal.pyz -l :25565 -r :25566`
 > Windows中`cmd`和`powershell`默认启用的`快速编辑模式`可能会在您使用鼠标框选日志时将本项目挂起，
 > 挂起期间程序无法转发或处理任何数据，如遇到挂起情况可使用回车键解除挂起，长期使用建议关闭`快速编辑模式`。
 
+### WEB网站
+#### Linux 3.9+ 共端口模式 {web}
+对于数量庞大的WEB程序，在Linux 3.9+中实现共端口模式变得非常复杂。
+
+多数WEB程序为了能让一个二进制文件在各种Linux发行版中运行而不用为每个发行版编译一个二进制文件，通常会采用静态链接的编译方式，
+
+静态链接的使用导致WEB程序并不会去尝试从动态运行库中搜索函数，此时我们无法让WEB程序使用我们篡改的`bind`函数。
+
+如果您的WEB程序采用了静态链接，您可以尝试修改源代码解除静态链接或者在`bind`之前为socket设置`SO_REUSEPORT`标志。
+
+或者您应该采用更加通用的转发模式，当然这会对并发性能产生一些影响。
+
+您需要将`type`设置为`web`而不是默认的`mcje`，其余设置与[MCJE共端口模式](#mcje1)的配置方式完全相同。
+
+您现在可以使用`域名:端口`的方式访问您的WEB应用，但是随着映射IP地址的更新，端口号也会一起发生变化，
+
+所以为了追踪端口的变化，您还需要根据[HTTP Redirect](https://github.com/Guation/http_redirect)项目的指引配置重定向，以固化域名访问入口。
+
+#### Windows/MacOS/Linux 转发模式
+您需要将`type`设置为`web`而不是默认的`mcje`，其余设置与[MCJE转发模式](#mcje2)的配置方式完全相同。
+
+您现在可以使用`域名:端口`的方式访问您的WEB应用，但是随着映射IP地址的更新，端口号也会一起发生变化，
+
+所以为了追踪端口的变化，您还需要根据[HTTP Redirect](https://github.com/Guation/http_redirect)项目的指引配置重定向，以固化域名访问入口。
+
+### 通用TCP应用
+#### Linux 3.9+ 共端口模式
+与[WEB网站共端口模式](#web)情况类似，hook很有可能无法生效，如果未生效您需要自行修改目标应用源代码以支持`SO_REUSEPORT`标志。
+
+或者您应该采用更加通用的转发模式。
+
+您需要将`type`设置为`tcp`而不是默认的`mcje`，其余设置与[MCJE共端口模式](#mcje1)的配置方式完全相同。
+
+#### Windows/MacOS/Linux 转发模式
+您需要将`type`设置为`tcp`而不是默认的`mcje`，其余设置与[MCJE转发模式](#mcje2)的配置方式完全相同。
+
 ### 构建
 #### Linux
 ```
@@ -203,7 +253,7 @@ shiv -e nat1_traversal.nat1_traversal:main -o nat1_traversal.pyz .
 ```
 git clone https://github.com/Guation/nat1_traversal.git
 cd nat1_traversal
-pip install pyinstaller requests
+pip install pyinstaller requests dnspython
 pyinstaller nat1_traversal.spec
 ```
 

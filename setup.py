@@ -18,6 +18,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "requests",
+        "dnspython",
     ],
     project_urls={
         "url": "https://github.com/Guation/nat1_traversal",

@@ -33,44 +33,62 @@ def _pack_stun_message(msg_type, tran_id, payload = b""):
 
 def _unpack_stun_message(data):
     # type: (bytes) -> tuple[bytes, bytes, bytes]
+    if len(data) < 4:
+        raise ValueError(
+            "STUN数据包长度过短 %s" % data
+        )
     msg_type, msg_length = struct.unpack("!HH", data[:4])
     tran_id = data[4:20]
     payload = data[20:20 + msg_length]
+    if len(payload) != msg_length:
+        raise ValueError(
+            "STUN数据包已损坏 %s" % data
+        )
     return msg_type, tran_id, payload
 
 def _extract_mapped_addr(payload):
     # type: (bytes) -> socket._RetAddress
-    while payload:
-        attrib_type, attrib_length = struct.unpack("!HH", payload[:4])
-        attrib_value = payload[4:4 + attrib_length]
-        payload = payload[4 + attrib_length:]
-        if attrib_type == ATTRIB_MAPPED_ADDRESS:
-            _, family, port = struct.unpack("!BBH", attrib_value[:4])
-            if family == FAMILY_IPV4:
-                ip = socket.inet_ntoa(attrib_value[4:8])
-                return ip, port
-        elif attrib_type == ATTRIB_XOR_MAPPED_ADDRESS:
-            # rfc5389 and rfc8489
-            _, family, xor_port = struct.unpack("!BBH", attrib_value[:4])
-            if family == FAMILY_IPV4:
-                xor_iip, = struct.unpack("!L", attrib_value[4:8])
-                ip = socket.inet_ntoa(struct.pack("!L", MAGIC_COOKIE ^ xor_iip))
-                port = (MAGIC_COOKIE >> 16) ^ xor_port
-                return ip, port
-    return None
+    try:
+        while payload:
+            attrib_type, attrib_length = struct.unpack("!HH", payload[:4])
+            attrib_value = payload[4:4 + attrib_length]
+            payload = payload[4 + attrib_length:]
+            if attrib_type == ATTRIB_MAPPED_ADDRESS:
+                _, family, port = struct.unpack("!BBH", attrib_value[:4])
+                if family == FAMILY_IPV4:
+                    ip = socket.inet_ntoa(attrib_value[4:8])
+                    return ip, port
+            elif attrib_type == ATTRIB_XOR_MAPPED_ADDRESS:
+                # rfc5389 and rfc8489
+                _, family, xor_port = struct.unpack("!BBH", attrib_value[:4])
+                if family == FAMILY_IPV4:
+                    xor_iip, = struct.unpack("!L", attrib_value[4:8])
+                    ip = socket.inet_ntoa(struct.pack("!L", MAGIC_COOKIE ^ xor_iip))
+                    port = (MAGIC_COOKIE >> 16) ^ xor_port
+                    return ip, port
+        return None
+    except (struct.error, OSError) as e:
+        raise ValueError(
+            "无法从STUN中解析MAPPED_ADDRESS %s" % payload
+        ) from e
 
 def _extract_other_addr(payload):
     # type: (bytes) -> socket._RetAddress
-    while payload:
-        attrib_type, attrib_length = struct.unpack("!HH", payload[:4])
-        attrib_value = payload[4:4 + attrib_length]
-        payload = payload[4 + attrib_length:]
-        if attrib_type == ATTRIB_OTHER_ADDRESS:
-            _, family, port = struct.unpack("!BBH", attrib_value[:4])
-            if family == FAMILY_IPV4:
-                ip = socket.inet_ntoa(attrib_value[4:8])
-                return ip, port
-    return None
+    try:
+        while payload:
+            attrib_type, attrib_length = struct.unpack("!HH", payload[:4])
+            attrib_value = payload[4:4 + attrib_length]
+            payload = payload[4 + attrib_length:]
+            if attrib_type == ATTRIB_OTHER_ADDRESS:
+                _, family, port = struct.unpack("!BBH", attrib_value[:4])
+                if family == FAMILY_IPV4:
+                    ip = socket.inet_ntoa(attrib_value[4:8])
+                    return ip, port
+        return None
+    except (struct.error, OSError) as e:
+        raise ValueError(
+            "无法从STUN中解析OTHER_ADDRESS %s" % payload
+        ) from e
 
 def new_tcp_socket():
     # type: () -> socket.socket
@@ -96,7 +114,7 @@ def single_test(stun, source, timeout = 3):
             ) from e
         try:
             sock.connect(stun)
-        except ConnectionError as e:
+        except OSError as e:
             raise ValueError(
                 "无法连接到stun服务器"
             ) from e
@@ -124,6 +142,17 @@ def single_test(stun, source, timeout = 3):
 def get_self_ip_port(local):
     # type: (socket._Address) -> socket._RetAddress
     return single_test((STUN_HOST, STUN_PORT), local)[2]
+
+def addr_available(local):
+    # type: (socket._Address) -> socket._RetAddress
+    with new_tcp_socket() as sock:
+        try:
+            sock.bind(local)
+        except OSError as e:
+            raise ValueError(
+                "无法绑定到指定地址 %s" % local[0]
+            ) from e
+        return sock.getsockname()
 
 def _loop_connect_test(local, remote):
     # type: (socket._Address, socket._Address) -> bool
