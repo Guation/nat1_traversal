@@ -6,7 +6,7 @@
 __author__ = "Guation"
 __all__ = ["update_record", "init"]
 
-import requests
+import requests, json
 from logging import debug, info, warning, error
 
 __token: str = None
@@ -22,15 +22,23 @@ def request(method: str, action: str, params: dict = None):
         "Authorization": "Bearer " + __token,
     }
     debug("method=%s, action=%s, params=%s, headers=%s", method, action, params, headers)
-    response = requests.request(method, "https://dynv6.com/api/v2" + action, json=params, headers=headers)
-    if response.status_code != 200:
+    try:
+        response = requests.request(method, "https://dynv6.com/api/v2" + action, json=params, headers=headers)
+        r = response.content
+        if response.status_code != 200:
+            raise ValueError(
+                '服务器拒绝了请求：action=%s, status_code=%d, response=%s' % (action, response.status_code, r)
+            )
+        else:
+            j = json.loads(r)
+            debug("action=%s, response=%s", action, j)
+            return j
+    except ValueError:
+        raise
+    except Exception as e:
         raise ValueError(
-            'action=%s, status_code=%d, response=%s' % (action, response.status_code, response.text)
-        )
-    else:
-        j = response.json()
-        debug("action=%s, response=%s", action, j)
-        return j
+            "%s 请求失败" % action
+        ) from e
 
 def search_zoneid(domain: str) -> int:
     for i in request("GET", "/zones"):

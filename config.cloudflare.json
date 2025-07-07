@@ -1,7 +1,7 @@
 {
     "type": "mcje",
     "dns": "cloudflare",
-    "id": "user@example.com",
+    "id": null,
     "token": "xxx",
     "domain": "example.com",
     "sub_domain": "mc",

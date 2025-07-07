@@ -203,6 +203,7 @@ def main():
             try:
                 dns.update_record(config["sub_domain"], config["domain"], "A", ip)
                 dns.update_record(srv_prefix + config["sub_domain"], config["domain"], "SRV", config["sub_domain"], port=port)
+                info("DDNS更新成功 %s.%s", config["sub_domain"], config["domain"])
                 return
             except ValueError as e:
                 error("DDNS更新失败： %s", e)

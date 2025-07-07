@@ -60,8 +60,7 @@ nat1_traversal.pyz [-h] [-l] [-r] [-c] [-d] [-v] [-q]
 -d  --debug                               Debug模式
 -v  --version                             显示版本
 -t  --nat-type-test                       NAT类型测试（仅参考）
--q  --query [[server ip]:[server port]]   MC服务器MOTD查询，省略ip时默认为127.0.0.1，省略port时默认为25565
-                                          此字段暂不支持A/SRV记录查询
+-q  --query [<server host>[:server port]] MC服务器MOTD查询，省略host时默认为127.0.0.1，省略port时默认为25565
 ```
 
 ### NAT类型检测
@@ -154,7 +153,7 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 
 
 ### Minecraft: Java Edition 开服
-#### Linux 3.9+ 共端口模式 {mcje1}
+#### Linux 3.9+ 共端口模式
 利用[Linux内核在3.9](https://lwn.net/Articles/542629/)引入的`SO_REUSEPORT`特性可以使多个应用程序监听同一端口，
 
 也就是意味着我们可以在MC服务器正在运行的同时使用和MC服务器相同的端口去申请并维持一个`TCP`内外端口的映射关系。
@@ -173,7 +172,7 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 
 使用`python3 nat1_traversal.pyz -l :25565`，如果一切顺利，那么您将能使用`config.json`中配置的域名进服。
 
-如果您的dns供应商设置为了`no_dns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:xxxx`的记录，可复制该地址连接到服务器。
+如果您的dns供应商设置为了`no_dns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:yyyy`的记录，可复制该地址连接到服务器。
 
 > ⚠️警告：
 > 由于此方案解除了单一进程对于一个端口的独占行为，
@@ -183,7 +182,7 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 > 请您在运行MC服务器之前检查目标端口是否已被使用，避免多个MC服务器共用同一端口的行为。
 > 如果出现了多个MC服务器共用同一端口的情况，本项目可能会误认为服务器MOTD在不断更新而不停在日志中输出MOTD。
 
-#### Windows/MacOS/Linux 转发模式 {mcje2}
+#### Windows/MacOS/Linux 转发模式
 在不可使用Linux 3.9+的`SO_REUSEPORT`时，我们可以让NAT1 Traversal作为中间代理转发我们的MC服务器流量。
 
 此时您在mc服务器控制台将看到所有玩家均从`127.0.0.1`登录，您可以使用端口号和NAT1 Traversal日志判断用户来源ip。
@@ -196,14 +195,14 @@ MacOS/Linux使用`python3 nat1_traversal.pyz -l :25565 -r :25566`
 
 如果一切顺利，那么您将能使用`config.json`中配置的域名进服。
 
-如果您的dns供应商设置为了`no_dns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:xxxx`的记录，可复制该地址连接到服务器。
+如果您的dns供应商设置为了`no_dns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:yyyy`的记录，可复制该地址连接到服务器。
 
 > ⚠️提示：
 > Windows中`cmd`和`powershell`默认启用的`快速编辑模式`可能会在您使用鼠标框选日志时将本项目挂起，
 > 挂起期间程序无法转发或处理任何数据，如遇到挂起情况可使用回车键解除挂起，长期使用建议关闭`快速编辑模式`。
 
 ### WEB网站
-#### Linux 3.9+ 共端口模式 {web}
+#### Linux 3.9+ 共端口模式
 对于数量庞大的WEB程序，在Linux 3.9+中实现共端口模式变得非常复杂。
 
 多数WEB程序为了能让一个二进制文件在各种Linux发行版中运行而不用为每个发行版编译一个二进制文件，通常会采用静态链接的编译方式，
@@ -237,6 +236,40 @@ MacOS/Linux使用`python3 nat1_traversal.pyz -l :25565 -r :25566`
 
 #### Windows/MacOS/Linux 转发模式
 您需要将`type`设置为`tcp`而不是默认的`mcje`，其余设置与[MCJE转发模式](#mcje2)的配置方式完全相同。
+
+### 故障排查
+#### Windows
+在`powershell`中使用`nslookup`进行DNS记录查询，请检查A记录中的应答地址以及SRV记录中的应答端口与程序获取的映射地址是否一致。
+```powershell
+PS > nslookup.exe -q=a mc.example.com
+服务器:  UnKnown
+Address:  192.168.1.1
+
+非权威应答:
+名称:    mc.example.com
+Address:  xx.xx.xx.xx
+
+PS > nslookup.exe -q=srv _minecraft._tcp.mc.example.com
+服务器:  UnKnown
+Address:  192.168.1.1
+
+非权威应答:
+_minecraft._tcp.mc.example.com       SRV service location:
+          priority       = 10
+          weight         = 0
+          port           = yyyy
+          svr hostname   = mc.example.com
+```
+
+#### Linux
+在`shell`中使用`dig`进行DNS记录查询，请检查A记录中的应答地址以及SRV记录中的应答端口与程序获取的映射地址是否一致。
+```shell
+$ dig +noall +answer mc.example.com A
+mc.example.com.	305	IN	A	xx.xx.xx.xx
+
+$ dig +noall +answer _minecraft._tcp.mc.example.com SRV
+_minecraft._tcp.mc.example.com. 60 IN SRV	10 0 yyyy mc.example.com.
+```
 
 ### 构建
 #### Linux

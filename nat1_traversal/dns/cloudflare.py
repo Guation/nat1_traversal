@@ -7,7 +7,7 @@
 __author__ = "Guation"
 __all__ = ["update_record", "init"]
 
-import requests
+import requests, json
 from logging import debug, info, warning, error
 
 __id: str = None
@@ -32,20 +32,28 @@ def request(method: str, action: str, params: dict = None):
             "X-Auth-Key": __token,
         }
     debug("method=%s, action=%s, params=%s, headers=%s", method, action, params, headers)
-    response = requests.request(method, "https://api.cloudflare.com/client/v4" + action, json=params, headers=headers)
-    if response.status_code != 200:
-        raise ValueError(
-            'action=%s, status_code=%d, response=%s' % (action, response.status_code, response.text)
-        )
-    else:
-        j = response.json()
-        if j.get("success"):
-            debug("action=%s, response=%s", action, j)
-            return j["result"]
-        else:
+    try:
+        response = requests.request(method, "https://api.cloudflare.com/client/v4" + action, json=params, headers=headers)
+        r = response.content
+        if response.status_code != 200:
             raise ValueError(
-                'action=%s, response=%s' % (action, j)
+                'action=%s, status_code=%d, response=%s' % (action, response.status_code, r)
             )
+        else:
+            j = json.loads(r)
+            if j.get("success"):
+                debug("action=%s, response=%s", action, j)
+                return j["result"]
+            else:
+                raise ValueError(
+                    'action=%s, response=%s' % (action, j)
+                )
+    except ValueError:
+        raise
+    except Exception as e:
+        raise ValueError(
+            "%s 请求失败" % action
+        ) from e
 
 def search_zoneid(domain: str) -> str:
     for i in request("GET", "/zones"):
