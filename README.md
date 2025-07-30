@@ -10,16 +10,19 @@
 
 ISP最常使用的NAT方案为NAPT(Network Address Port Translation)，而在进行网络端口地址转换的过程中，对于端口的映射方案和对外部来源的处理策略又衍生出了四个常见的NAT等级：
 
-- **FULL CONE**（全锥，NAT1）
-- RESTRICTED CONE（IP限制锥，NAT2）
-- PORT RESTRICTED CONE（端口限制锥，NAT3）
-- **SYMMETRIC**（对称型，NAT4）
+| RFC3489 | RFC4787映射行为 | RFC4787过滤行为 | RFC4787端口分配行为 | 备注 |
+|:--:|:--:|:--:|:--:|:--:|
+|OPEN INTERNET（公网）|Endpoint-Independent Mapping（端点独立映射）|Endpoint-Independent Filtering（端点独立过滤）|Port Preservation（端口保留）|NAT0|
+|**FULL CONE**（全锥）|Endpoint-Independent Mapping（端点独立映射）|Endpoint-Independent Filtering（端点独立过滤）|No Port Preservation（不保留端口）|NAT1|
+|RESTRICTED CONE（IP限制锥）|Endpoint-Independent Mapping（端点独立映射）|Address-Dependent Filtering（地址独立过滤）|No Port Preservation（不保留端口）|NAT2|
+|PORT RESTRICTED CONE（端口限制锥）|Endpoint-Independent Mapping（端点独立映射）|Address and Port-Dependent Filtering（地址与端口独立过滤）|No Port Preservation（不保留端口）|NAT3|
+|**SYMMETRIC**（对称型）|Address and Port-Dependent Mapping（地址与端口独立映射）|Address and Port-Dependent Filtering（地址与端口独立过滤）|No Port Preservation（不保留端口）|NAT4|
 
 其中对于ISP而言最常使用的策略为`FULL CONE`和`SYMMETRIC`。
 
-- `FULL CONE`是一种宽松的解决方案，对于同一内部端口发起的请求始终对应到同一外部端口，直至该映射一段时间内不再使用时才会被释放。也就是说如果能将映射通道一直标记为使用状态，那么映射将始终不会关闭，我们可以轻松的获取到内外端口的映射关系，`电信`通常采用这种方案。
+- `FULL CONE`是一种宽松的解决方案，对于同一`iAddr:iPort`发起的请求始终对应到同一`eAddr:ePort`，直至该映射一段时间内不再使用时才会被释放。也就是说如果在释放前将映射重新标记为使用状态，那么映射将始终不会关闭，我们可以轻松的获取到内外端口的映射关系，`电信`通常采用这种方案。
 
-- `SYMMETRIC`是一种严格的解决方案，对于同一个内部端口向不同的外部端口建立连接时将新建一个端口到端口的对应关系，由于每次向不同地址发起的连接都将更换新的来源地址，使得该方案的映射关系变得不可预测，`移动`通常采用这种方案。
+- `SYMMETRIC`是一种严格的解决方案，对于同一个`iAddr:iPort`向不同的`dAddr:dPort`建立连接时将生成新的`eAddr:ePort`，由于每次向不同地址发起的连接都将更换新的来源地址，使得该方案的映射关系变得不可预测，`移动`通常采用这种方案。
 
 ### 项目目的
 
@@ -123,10 +126,10 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 #### 字段解释
 - type: 映射的服务类型
   - mcje: JAVA版Minecraft，端口绑定到`_minecraft._tcp.`（默认）
-  - mcbe: 基岩版Minecraft，端口绑定到`_minecraft._udp.`（暂未实现）
+  - mcbe: 基岩版Minecraft，端口绑定到`_minecraft._udp.`
   - web: HTTP/HTTPS网站，端口绑定到`_web._tcp.`
   - tcp: 通用TCP应用，端口绑定到`_tcp.`
-  - udp: 通用UDP应用，端口绑定到`_udp.`（暂未实现）
+  - udp: 通用UDP应用，端口绑定到`_udp.`
 
 - dns: dns供应商名称
   - cloudflare
@@ -168,6 +171,11 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 
 类似于`LD_PRELOAD=./hook_bind.so java @user_jvm_args.txt @libraries/net/neoforged/neoforge/21.1.133/unix_args.txt "$@"`
 
+> ⚠️注意：
+> 如果您在使用面板管理您的服务器，请不要直接将`LD_PRELOAD=./hook_bind.so`加入到启动指令的`java`之前，
+> 这会导致您无法启动您的服务器。因为该注入仅适用于使用[shell](https://github.com/bminor/bash)启动`java`的情况，不适用于基于[exec族](https://github.com/bminor/glibc/blob/258126bc0b77d7f9ae7d0b2737ec66e186c1e0ef/posix/unistd.h#L599)的管理面板启动`java`的情况。
+> 您可以参阅[在面板中启用SO_REUSEPORT](./README_extend.md#在面板中启用SO_REUSEPORT)使hook适应您的管理面板。
+
 然后像往常一样启动服务器，如果您在日志中看见类似`Hooked bind: PID=1234, FD=5, setsockopt SO_REUSEPORT`的日志则代表修改已生效。
 
 使用`python3 nat1_traversal.pyz -l :25565`，如果一切顺利，那么您将能使用`config.json`中配置的域名进服。
@@ -201,41 +209,21 @@ MacOS/Linux使用`python3 nat1_traversal.pyz -l :25565 -r :25566`
 > Windows中`cmd`和`powershell`默认启用的`快速编辑模式`可能会在您使用鼠标框选日志时将本项目挂起，
 > 挂起期间程序无法转发或处理任何数据，如遇到挂起情况可使用回车键解除挂起，长期使用建议关闭`快速编辑模式`。
 
-### WEB网站
+### Minecraft: Bedrock Edition 开服
 #### Linux 3.9+ 共端口模式
-对于数量庞大的WEB程序，在Linux 3.9+中实现共端口模式变得非常复杂。
+您需要将`type`设置为`mcbe`而不是默认的`mcje`，其余设置与[MCJE共端口模式](#linux-39-共端口模式)类似。
 
-多数WEB程序为了能让一个二进制文件在各种Linux发行版中运行而不用为每个发行版编译一个二进制文件，通常会采用静态链接的编译方式，
+您需要在启动指令`LD_LIBRARY_PATH=. ./bedrock_server`之前添加`LD_PRELOAD=./hook_bind.so`，变为`LD_PRELOAD=./hook_bind.so LD_LIBRARY_PATH=. ./bedrock_server`。
 
-静态链接的使用导致WEB程序并不会去尝试从动态运行库中搜索函数，此时我们无法让WEB程序使用我们篡改的`bind`函数。
+并且您需要修改`server.properties`，将其中的`enable-lan-visibility=true`改为`enable-lan-visibility=false`，尤其是当您的`server-port=19132`时。
 
-如果您的WEB程序采用了静态链接，您可以尝试修改源代码解除静态链接或者在`bind`之前为socket设置`SO_REUSEPORT`标志。
-
-或者您应该采用更加通用的转发模式，当然这会对并发性能产生一些影响。
-
-您需要将`type`设置为`web`而不是默认的`mcje`，其余设置与[MCJE共端口模式](#mcje1)的配置方式完全相同。
-
-您现在可以使用`域名:端口`的方式访问您的WEB应用，但是随着映射IP地址的更新，端口号也会一起发生变化，
-
-所以为了追踪端口的变化，您还需要根据[HTTP Redirect](https://github.com/Guation/http_redirect)项目的指引配置重定向，以固化域名访问入口。
+如果您不这样做，在您连接服务器时可能会收到`哇，该服务器非常受欢迎！请稍后再回来查看空间是否开放。`的拒绝提示。
 
 #### Windows/MacOS/Linux 转发模式
-您需要将`type`设置为`web`而不是默认的`mcje`，其余设置与[MCJE转发模式](#mcje2)的配置方式完全相同。
+您需要将`type`设置为`mcbe`而不是默认的`mcje`，其余设置与[MCJE转发模式](#windowsmacoslinux-转发模式)的配置方式完全相同。
 
-您现在可以使用`域名:端口`的方式访问您的WEB应用，但是随着映射IP地址的更新，端口号也会一起发生变化，
-
-所以为了追踪端口的变化，您还需要根据[HTTP Redirect](https://github.com/Guation/http_redirect)项目的指引配置重定向，以固化域名访问入口。
-
-### 通用TCP应用
-#### Linux 3.9+ 共端口模式
-与[WEB网站共端口模式](#web)情况类似，hook很有可能无法生效，如果未生效您需要自行修改目标应用源代码以支持`SO_REUSEPORT`标志。
-
-或者您应该采用更加通用的转发模式。
-
-您需要将`type`设置为`tcp`而不是默认的`mcje`，其余设置与[MCJE共端口模式](#mcje1)的配置方式完全相同。
-
-#### Windows/MacOS/Linux 转发模式
-您需要将`type`设置为`tcp`而不是默认的`mcje`，其余设置与[MCJE转发模式](#mcje2)的配置方式完全相同。
+### 更多用法
+在寻找更多穿透姿势？HTTP(S)网站？RDP远程桌面？[点我查看](./README_extend.md#更多用法)
 
 ### 故障排查
 #### Windows
@@ -299,3 +287,5 @@ pyinstaller nat1_traversal.spec
 
 #### 视频教程
 [[MCJE] 低延迟IPv4直连联机教程，全平台通用。NAT1 Traversal](https://www.bilibili.com/video/BV162TezeEmx/)
+
+[[WEB]无公网在家建站、远程直连NAS教程。NAT1 Traversal](https://www.bilibili.com/video/BV1GeuuzWEgg/)

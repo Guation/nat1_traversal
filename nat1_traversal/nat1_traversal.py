@@ -7,12 +7,13 @@ __author__ = "Guation"
 
 import os, argparse, sys, json, traceback, socket, time, threading, multiprocessing
 from logging import debug, info, warning, error, DEBUG, INFO, basicConfig
-from nat1_traversal.util.stun import nat_type_test, get_self_ip_port, addr_available
-from nat1_traversal.util.port_forwarder import start_port_forward
-from nat1_traversal.util.motd import mcje_query, srv_query, tcp_query
+from nat1_traversal.util.stun import nat_type_test, get_self_ip_port, addr_available, TYPE_TCP, TYPE_UDP
+from nat1_traversal.util.tcp_port_forwarder import start_tcp_port_forward
+from nat1_traversal.util.udp_port_forwarder import start_udp_port_forward
+from nat1_traversal.util.motd import mcje_query, srv_query, tcp_query, mcbe_query, udp_query
 from nat1_traversal.util.addr_tool import convert_addr, convert_mc_host
 
-VERSION = "1.0.5"
+VERSION = "1.0.6"
 
 def register_exit():
     import signal
@@ -54,10 +55,13 @@ class logger_filter:
             self.buff_msg = msg
             return True
 
-def forward_main(local_addr, remote_addr, mapped_addr, debug):
-    # type: (socket._Address, socket._Address, socket._Address, bool) -> None
+def forward_main(local_addr, remote_addr, mapped_addr, debug, _type):
+    # type: (socket._Address, socket._Address, socket._Address, bool, int) -> None
     init_logger(debug)
-    start_port_forward(*local_addr, *remote_addr, *mapped_addr)
+    if _type is TYPE_TCP:
+        start_tcp_port_forward(local_addr, remote_addr, mapped_addr)
+    elif _type is TYPE_UDP:
+        start_udp_port_forward(local_addr, remote_addr, mapped_addr)
 
 def main():
     parser = argparse.ArgumentParser(description='NAT1 Traversal', add_help=False, allow_abbrev=False, usage=argparse.SUPPRESS)
@@ -176,25 +180,36 @@ def main():
     if remote_addr is None and local_addr[1] == 0:
         error("共端口模式port不能为0")
         sys.exit(1)
-    try:
-        local_addr = addr_available(local_addr)
-    except ValueError as e:
-        error("local地址不可用：%s", e)
-        debug(traceback.format_exc())
-        sys.exit(1)
     if config["type"] == "mcje":
         srv_prefix = "_minecraft._tcp."
         query_function = mcje_query
+        socket_type = TYPE_TCP
     elif config["type"] == "web":
         srv_prefix = "_web._tcp."
         query_function = tcp_query
+        socket_type = TYPE_TCP
     elif config["type"] == "tcp":
         srv_prefix = "_tcp."
         query_function = tcp_query
+        socket_type = TYPE_TCP
+    elif config["type"] == "mcbe":
+        srv_prefix = "_minecraft._udp."
+        query_function = mcbe_query
+        socket_type = TYPE_UDP
+    elif config["type"] == "udp":
+        srv_prefix = "_udp."
+        query_function = udp_query
+        socket_type = TYPE_UDP
     else:
         error("不支持的type: %s", config["type"])
         sys.exit(1)
         return
+    try:
+        local_addr = addr_available(local_addr, socket_type)
+    except ValueError as e:
+        error("local地址不可用：%s", e)
+        debug(traceback.format_exc())
+        sys.exit(1)
     register_exit()
     def update_dns(ip: str, port: int):
         nonlocal dns, config, srv_prefix
@@ -218,7 +233,7 @@ def main():
                 time.sleep(10)
                 continue
             try:
-                mapped_addr = get_self_ip_port(local_addr)
+                mapped_addr = get_self_ip_port(local_addr, socket_type)
             except ValueError as e:
                 error("获取映射地址失败：%s", e)
                 debug(traceback.format_exc())
@@ -239,14 +254,14 @@ def main():
         multiprocessing.set_start_method("spawn")
         while True:
             try:
-                mapped_addr = get_self_ip_port(local_addr)
+                mapped_addr = get_self_ip_port(local_addr, socket_type)
             except ValueError as e:
                 error("获取映射地址失败：%s", e)
                 debug(traceback.format_exc())
                 time.sleep(10)
                 continue
             threading.Thread(target=update_dns, args=mapped_addr).start()
-            forward_process = multiprocessing.Process(target=forward_main, args=(local_addr, remote_addr, mapped_addr, args.D), daemon=True)
+            forward_process = multiprocessing.Process(target=forward_main, args=(local_addr, remote_addr, mapped_addr, args.D, socket_type), daemon=True)
             forward_process.start()
             forward_process.join()
             warning("转发发生异常，可能是映射地址离线，开始重新转发")

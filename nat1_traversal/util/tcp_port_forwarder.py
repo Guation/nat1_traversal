@@ -3,7 +3,7 @@
 
 __author__ = "Guation"
 
-import asyncio, traceback, os, sys
+import asyncio, traceback, os, sys, socket
 from logging import debug, info, warning, error, exception
 from .stun import new_tcp_socket
 
@@ -100,8 +100,9 @@ async def port_forward(local_host: str, local_port: int, remote_host: str, remot
         info(f"开启从 {local_host}:{local_port}({call_host}:{call_port}) 到 {remote_host}:{remote_port} 的端口转发")
         await server.serve_forever()
 
-def start_port_forward(local_host: str, local_port: int, remote_host: str, remote_port: int, call_host: str, call_port: int):
+def start_tcp_port_forward(local, remote, call):
+    # type: (socket._Address, socket._Address, socket._Address) -> None
     try:
-        asyncio.run(port_forward(local_host, local_port, remote_host, remote_port, call_host, call_port))
+        asyncio.run(port_forward(*local, *remote, *call))
     except (KeyboardInterrupt, SystemExit):
         return # 捕获到之后正常退出 避免栈被multiprocessing捕捉

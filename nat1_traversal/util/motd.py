@@ -3,10 +3,16 @@
 
 # https://github.com/FragLand/minestat/blob/master/Python/minestat/__init__.py
 
-import socket, struct, json, traceback, requests
+import socket, struct, json, traceback, time, io, re
 import dns.resolver as resolver
 from logging import debug, info, warning, error
-from .stun import new_tcp_socket
+from .stun import new_tcp_socket, new_udp_socket
+
+RAKNET_MAGIC = bytearray([0x00, 0xff, 0xff, 0x00, 0xfe, 0xfe, 0xfe, 0xfe, 0xfd, 0xfd, 0xfd, 0xfd, 0x12, 0x34, 0x56, 0x78])
+MOTD_INDEX = ["edition", "motd_1", "protocol_version", "version", "current_players", "max_players",
+                  "server_uid", "motd_2", "gamemode", "gamemode_numeric", "port_ipv4", "port_ipv6"]
+STRIP_MOTD = re.compile(r'§[0-9a-v]')
+
 
 def unpack_varint(sock: socket.socket) -> int:
     """ Small helper method for unpacking an int from an varint (streamed from socket). """
@@ -89,7 +95,7 @@ def mcje_query(address, port):
     This protocol is based on encoded JSON, see the documentation at wiki.vg below
     for a full packet description.
 
-    See https://wiki.vg/Server_List_Ping#Current
+    See https://minecraft.wiki/w/Java_Edition_protocol/Server_List_Ping#Current
     """
     sock = new_tcp_socket()
     sock.settimeout(10)
@@ -205,3 +211,119 @@ def tcp_query(address, port):
         debug("os error\n%s", traceback.format_exc())
         return False, 'OSError'
     return True, 'port available confirm.'
+
+def mcbe_query(address, port):
+    # type: (str, int) -> tuple[bool, str]
+    """
+    Method for querying a Bedrock server (Minecraft PE, Windows 10 or Education Edition).
+    The protocol is based on the RakNet protocol.
+
+    See https://minecraft.wiki/w/RakNet#Unconnected_Ping
+
+    Note: This method currently works as if the connection is handled via TCP (as if no packet loss might occur).
+    Packet loss handling should be implemented (resending).
+    """
+
+    
+
+    # Create socket with type DGRAM (for UDP)
+    sock = new_udp_socket()
+    sock.settimeout(10)
+
+    try:
+        sock.connect((address, port))
+    except socket.timeout:
+        debug("connect timeout\n%s", traceback.format_exc())
+        return False, 'timeout'
+    except OSError:
+        debug("os error\n%s", traceback.format_exc())
+        return False, 'OSError'
+
+    # Construct the `Unconnected_Ping` packet
+    # Packet ID - 0x01
+    req_data = bytearray([0x01])
+    # current unix timestamp in ms as signed long (64-bit) LE-encoded
+    req_data += struct.pack("<q", int(time.time() * 1000))
+    # RakNet MAGIC (0x00ffff00fefefefefdfdfdfd12345678)
+    req_data += RAKNET_MAGIC
+    # Client GUID - as signed long (64-bit) LE-encoded
+    req_data += struct.pack("<q", 0x02)
+
+    sock.send(req_data)
+
+    # Do all the receiving in a try-catch, to reduce duplication of error handling
+
+    # response packet:
+    # byte - 0x1C - Unconnected Pong
+    # long - timestamp
+    # long - server GUID
+    # 16 byte - magic
+    # short - Server ID string length
+    # string - Server ID string
+    try:
+        response_buffer, response_addr = sock.recvfrom(1024)
+        response_stream = io.BytesIO(response_buffer)
+
+        # Receive packet id
+        packet_id = response_stream.read(1)
+
+        # Response packet ID should always be 0x1c
+        if packet_id != b'\x1c':
+            debug(f"packet_id == {packet_id} != \\x1c")
+            return False, "packet_id != \\x1c"
+
+        # Receive (& ignore) response timestamp
+        response_timestamp = struct.unpack("<q", response_stream.read(8))
+
+        # Server GUID
+        response_server_guid = struct.unpack("<q", response_stream.read(8))
+
+        # Magic
+        response_magic = response_stream.read(16)
+        if response_magic != RAKNET_MAGIC:
+            debug(f"response_magic == {response_magic} != RAKNET_MAGIC")
+            return False, "response_magic != RAKNET_MAGIC"
+
+        # Server ID string length
+        response_id_string_length = struct.unpack(">h", response_stream.read(2))
+
+        # Receive server ID string
+        response_id_string = response_stream.read().decode("utf8")
+
+    except socket.timeout:
+        debug("connect timeout\n%s", traceback.format_exc())
+        return False, 'timeout'
+    except (ConnectionResetError, ConnectionAbortedError):
+        debug("connect error\n%s", traceback.format_exc())
+        return False, 'ConnectionResetError, ConnectionAbortedError'
+    except OSError:
+        debug("os error\n%s", traceback.format_exc())
+        return False, 'OSError'
+    finally:
+        sock.close()
+    
+    try:
+        payload_dict = {e: f for e, f in zip(MOTD_INDEX, response_id_string.split(";"))}
+        out_dict = {}
+        out_dict["version"] = {
+            "name": payload_dict["version"] + " (" + payload_dict["edition"] + ")",
+            "protocol": int(payload_dict["protocol_version"])
+        }
+        try:
+            out_dict["description"] = [STRIP_MOTD.sub('', payload_dict["motd_1"]), STRIP_MOTD.sub('', payload_dict["motd_2"])]
+        except KeyError:  # older Bedrock server versions do not respond with the secondary MotD.
+            out_dict["description"] = [STRIP_MOTD.sub('', payload_dict["motd_1"])]
+        out_dict["players"] = {"max": int(payload_dict["max_players"]), "online": int(payload_dict["current_players"])}
+        debug("server(%s:%s) motd %s", address, port, out_dict)
+    except Exception:
+        debug(traceback.format_exc())
+        return False, "motd parse fail."
+
+    return True, json.dumps(out_dict, ensure_ascii = False)
+
+def udp_query(address, port):
+    # type: (str, int) -> tuple[bool, str]
+    import sys
+    error("通用UDP仅支持转发模式")
+    sys.exit(1)
+    return False, "Unsupported"
