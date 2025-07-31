@@ -1,6 +1,8 @@
 # NAT1 Traversal
 
 ## 在面板中启用SO_REUSEPORT
+您可以在以下方案中二选一进行设置。推荐使用[修改JAVA指令](#修改java指令)的操作方案，这样您无需为每个服务器重新创建启动脚本，只需要简单修改启动指令即可。
+
 ### 创建启动脚本
 您可以将启动指令移动到一个`shell`脚本，并将`LD_PRELOAD=./hook_bind.so`放置到指令的最前方。
 
@@ -80,4 +82,6 @@ RDP无法采用共端口模式，将`type`设置为`tcp`，将`dns`设置为`no_
 
 Windows RDP默认使用端口为`3389`，因此我们需要配置`remote`为`Windows主机IP:3389`。
 
-
+### 通用UDP应用
+#### Windows/MacOS/Linux 转发模式
+由于UDP无连接特性，通用UDP应用没有有效的通用方案确认映射隧道是否可用，因此无法采用共端口模式，将`type`设置为`udp`，将`dns`设置为`no_dns`。

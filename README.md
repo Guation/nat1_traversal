@@ -26,11 +26,11 @@ ISP最常使用的NAT方案为NAPT(Network Address Port Translation)，而在进
 
 ### 项目目的
 
-借助特定的公共STUN服务器，在`FULL CONE`中申请并维持一个`TCP`内外端口的映射关系，实现在家用宽带上对外提供互联网服务。
+借助特定的公共STUN服务器，在`FULL CONE`中申请并维持一个`TCP/UDP`内外端口的映射关系，实现在家用宽带上对外提供互联网服务。
 
 ### 特化功能
 
-在`Linux`平台为`Minecraft: Java Edition`提供像租赁云服务器的一样的开服体验。
+在`Linux`平台为`Minecraft: Java Edition`和`Minecraft: Bedrock Edition`提供像租赁云服务器的一样的开服体验。
 
 ### 方案对比
 
@@ -43,8 +43,12 @@ ISP最常使用的NAT方案为NAPT(Network Address Port Translation)，而在进
 |配置难度|中等|简单|简单|
 |自身网络限制|FULL CONE|无|无|
 |费用|免费|昂贵|中等|
-|稳定性|取决于自身网络|稳定|取决于自身网络和中转网络|
-|上行速率/流量限制|无|有|有|
+|可用性|单线^1^|单线/BGP^2^|单线/BGP^2^|
+|上行速率/流量限制|无^3^|有|有|
+
+1. 移动与电信联通之间跨运营商存在严重QoS现象，可能导致服务不可用
+2. 单线或BGP取决于供应商，单线时同样存在跨运营商QoS现象
+3. 无上行限制指不存在中转服务器的二次限制，实际使用时仍受到自身网络的上行限制
 
 ## 使用方法
 
@@ -219,8 +223,46 @@ MacOS/Linux使用`python3 nat1_traversal.pyz -l :25565 -r :25566`
 
 如果您不这样做，在您连接服务器时可能会收到`哇，该服务器非常受欢迎！请稍后再回来查看空间是否开放。`的拒绝提示。
 
+如果您在服务端日志中看见类似`Hooked bind: PID=1234, FD=5, setsockopt SO_REUSEPORT`的日志则代表修改已生效。
+
+由于基岩版不支持`SRV记录`解析，我们需要使用[三方服务端](#使用bedrockconnect代理服务器将玩家重定向到服务器)进行重定向，或者使用[XBOX好友系统广播](#使用broadcaster向xbox好友广播服务器地址)服务器地址。
+
 #### Windows/MacOS/Linux 转发模式
 您需要将`type`设置为`mcbe`而不是默认的`mcje`，其余设置与[MCJE转发模式](#windowsmacoslinux-转发模式)的配置方式完全相同。
+
+由于基岩版不支持`SRV记录`解析，我们需要使用[三方服务端](#使用bedrockconnect代理服务器将玩家重定向到服务器)进行重定向，或者使用[XBOX好友系统广播](#使用broadcaster向xbox好友广播服务器地址)服务器地址。
+
+#### 使用BedrockConnect代理服务器将玩家重定向到服务器
+您需要在云服务器中下载[带有SRV记录解析的BedrockConnect](https://github.com/Guation/BedrockConnect_with_SRV)，
+
+云服务器要求具有公网UDP:19132端口，对带宽和服务器性能无硬性要求，推荐下载到处于境内的云服务器中。
+
+编辑`server.json`文件，将其中`address`字段修改为您在NAT1 Traversal中设置的DDNS地址，`port`保持为`0`。
+
+`name`字段可以修改为您希望在BedrockConnect菜单中展示的服务器名称，`iconUrl`为您希望在BedrockConnect菜单中展示的服务器图标。
+
+修改完成后使用`java -jar BedrockConnect-1.0-SNAPSHOT.jar`指令运行您的代理服务器。
+
+玩家使用云服务器IP加入代理服务器，点击菜单中您的服务器按钮后，玩家将会被`transfer`指令重定向到您的服务器中，之后玩家将直接与您的服务器通信，数据包不再经过代理服务器。
+
+#### 使用Broadcaster向XBOX好友广播服务器地址
+您需要下载[带有SRV记录解析的Broadcaster](https://github.com/Guation/Broadcaster_with_SRV)，
+
+推荐下载到处于境外的云服务器中，这样有利于程序稳定的连接到XBOX网络。
+
+您需要[注册](https://signup.live.com/)一个新的Microsoft账户作为广播账户，请勿直接将您的账户作为广播账户以防止账户意外封禁对您造成损失。
+
+注册完成后前往[Xbox profile](https://www.xbox.com/play/user)为您的Microsoft广播账户注册gametag。
+
+编辑`config.yml`文件，将其中`ip`字段修改为您在NAT1 Traversal中设置的DDNS地址，`port`保持为`0`。
+
+修改完成后使用`java -jar MCXboxBroadcastStandalone.jar`指令运行Broadcaster。
+
+运行后按照日志提示打开[登录](https://www.microsoft.com/link)地址并填入日志中的code，接着按照网页提示进行登录操作。
+
+登录成功后日志中将显示您的Microsoft广播账户的gametag。
+
+玩家需要在游戏中搜索并添加您的Microsoft广播账户为好友，Broadcaster会自动同意好友申请，成功添加好友后玩家可以通过加入好友游戏的按钮加入您的服务器。
 
 ### 更多用法
 在寻找更多穿透姿势？HTTP(S)网站？RDP远程桌面？[点我查看](./README_extend.md#更多用法)
