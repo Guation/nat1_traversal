@@ -81,6 +81,18 @@ def srv_query(srv_prefix, address, port, default_port):
     # type: (str, str, int, int) -> tuple[str, int]
     if port != 0:
         return (address, port)
+    if not address:
+        return (address, default_port)
+    try:
+        socket.inet_pton(socket.AF_INET, address)
+        return (address, default_port)
+    except OSError:
+        pass
+    try:
+        socket.inet_pton(socket.AF_INET6, address)
+        return (address, default_port)
+    except OSError:
+        pass
     try:
         srv_record = resolver.resolve(srv_prefix + address, "SRV")[0]
         debug("SRV record %s", srv_record)

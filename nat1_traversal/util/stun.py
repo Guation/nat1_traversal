@@ -151,7 +151,7 @@ def tcp_single_test(stun, source, timeout = 3):
             distination_addr = sock.getpeername()
             mapped_addr = _extract_mapped_addr(payload)
             other_addr = _extract_other_addr(payload)
-            debug("source_addr=%s, distination_addr=%s, mapped_addr=%s, other_addr=%s", source_addr, distination_addr, mapped_addr, other_addr)
+            debug("stun source_addr=%s, distination_addr=%s, mapped_addr=%s, other_addr=%s", source_addr, distination_addr, mapped_addr, other_addr)
             return (source_addr, distination_addr, mapped_addr, other_addr)
         else:
             raise ValueError(
@@ -197,11 +197,11 @@ def udp_single_test(stun, source, change_ip = False, change_port = False, timeou
                 break
             except TimeoutError as e:
                 raise TimeoutError(
-                    "未从stun服务器收到有效信息，请尝试关闭透明代理后重试。"
+                    "未从stun服务器收到有效信息。"
                 ) from e
         else:
             raise TimeoutError(
-                "未从stun服务器收到有效信息，请尝试关闭透明代理后重试。"
+                "未从stun服务器收到有效信息。"
             ) 
         msg_type, msg_id, payload = _unpack_stun_message(buf)
         if tran_id == msg_id and msg_type == BIND_RESPONSE:

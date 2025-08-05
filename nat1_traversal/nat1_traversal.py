@@ -108,23 +108,32 @@ def main():
             server_ip, server_port = srv_query("_minecraft._tcp.", *convert_mc_host(args.Q or args.QJ6 or args.QJ), 25565)
             status = False
             if not status and (args.Q or args.QJ6):
+                if not server_ip:
+                    server_ip = "::1"
                 status, msg = mcje_query(server_ip, server_port, socket.AF_INET6)
                 if status:
                     info("MCJE: %s", msg)
             if not status and (args.Q or args.QJ):
+                if not server_ip:
+                    server_ip = "127.0.0.1"
                 status, msg = mcje_query(server_ip, server_port, socket.AF_INET)
                 if status:
                     info("MCJE: %s", msg)
             if not status:
                 warning("MCJE: 服务器离线")
         if args.Q or args.QB or args.QB6:
-            server_ip, server_port = srv_query("_minecraft._udp.", *convert_mc_host(args.Q or args.QB6 or args.QB), 19132)
             status = False
             if not status and (args.Q or args.QB6):
+                server_ip, server_port = srv_query("_minecraft._udp.", *convert_mc_host(args.Q or args.QB6 or args.QB), 19133)
+                if not server_ip:
+                    server_ip = "::1"
                 status, msg = mcbe_query(server_ip, server_port, socket.AF_INET6)
                 if status:
                     info("MCBE: %s", msg)
             if not status and (args.Q or args.QB):
+                server_ip, server_port = srv_query("_minecraft._udp.", *convert_mc_host(args.Q or args.QB6 or args.QB), 19132)
+                if not server_ip:
+                    server_ip = "127.0.0.1"
                 status, msg = mcbe_query(server_ip, server_port, socket.AF_INET)
                 if status:
                     info("MCBE: %s", msg)
