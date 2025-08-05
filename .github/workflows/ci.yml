@@ -26,10 +26,16 @@ jobs:
         pyinstaller nat1_traversal.spec
         shiv -e nat1_traversal.nat1_traversal:main -o nat1_traversal.pyz .
         mv .\dist\nat1_traversal.exe .
+        dir
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: build-artifact
-        path: hook_bind nat1_traversal.pyz nat1_traversal.exe *.json LICENSE
+        path: |
+          hook_bind/
+          nat1_traversal.pyz
+          nat1_traversal.exe
+          *.json
+          LICENSE
         if-no-files-found: error
