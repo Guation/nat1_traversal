@@ -6,7 +6,7 @@
 import socket, struct, json, traceback, time, io, re
 import dns.resolver as resolver
 from logging import debug, info, warning, error
-from .stun import new_tcp_socket, new_udp_socket
+from .stun import new_tcp_socket, new_udp_socket, new_tcp_socket_advanced, new_udp_socket_advanced
 
 RAKNET_MAGIC = bytearray([0x00, 0xff, 0xff, 0x00, 0xfe, 0xfe, 0xfe, 0xfe, 0xfd, 0xfd, 0xfd, 0xfd, 0x12, 0x34, 0x56, 0x78])
 MOTD_INDEX = ["edition", "motd_1", "protocol_version", "version", "current_players", "max_players",
@@ -77,8 +77,10 @@ def description2str(data):
             out += description2str(i)
     return out
 
-def srv_query(srv_prefix, address, port):
-    # type: (str, str, int) -> tuple[str, int]
+def srv_query(srv_prefix, address, port, default_port):
+    # type: (str, str, int, int) -> tuple[str, int]
+    if port != 0:
+        return (address, port)
     try:
         srv_record = resolver.resolve(srv_prefix + address, "SRV")[0]
         debug("SRV record %s", srv_record)
@@ -86,10 +88,11 @@ def srv_query(srv_prefix, address, port):
         address = str(srv_record.target)[:-1]
     except (resolver.dns.exception.DNSException, OSError):
         debug("query srv record fail.\n%s", traceback.format_exc())
+        port = default_port
     return (address, port)
 
-def mcje_query(address, port):
-    # type: (str, int) -> tuple[bool, str]
+def mcje_query(address, port, family = socket.AF_INET):
+    # type: (str, int, int) -> tuple[bool, str]
     """
     Method for querying a modern (MC Java >= 1.7) server with the SLP protocol.
     This protocol is based on encoded JSON, see the documentation at wiki.vg below
@@ -97,11 +100,14 @@ def mcje_query(address, port):
 
     See https://minecraft.wiki/w/Java_Edition_protocol/Server_List_Ping#Current
     """
-    sock = new_tcp_socket()
-    sock.settimeout(10)
+    sock = new_tcp_socket_advanced(family = family)
+    sock.settimeout(5)
 
     try:
         sock.connect((address, port))
+    except socket.gaierror:
+        debug("DNS query failed\n%s", traceback.format_exc())
+        return False, 'DNS query failed'
     except socket.timeout:
         debug("connect timeout\n%s", traceback.format_exc())
         return False, 'timeout'
@@ -181,7 +187,7 @@ def mcje_query(address, port):
         payload_dict = json.loads(payload_raw)
         out_dict = {}
         out_dict["version"] = payload_dict["version"]
-        out_dict["description"] = description2str(payload_dict["description"])
+        out_dict["description"] = STRIP_MOTD.sub('', description2str(payload_dict["description"])).splitlines()
         out_dict["players"] = {"max": payload_dict["players"]["max"], "online": payload_dict["players"]["online"]}
         if "sample" in payload_dict["players"]:
             out_dict["players"]["list"] = list(sorted(i["name"] for i in payload_dict["players"]["sample"]))
@@ -198,7 +204,7 @@ def mcje_query(address, port):
 def tcp_query(address, port):
     # type: (str, int) -> tuple[bool, str]
     sock = new_tcp_socket()
-    sock.settimeout(10)
+    sock.settimeout(5)
     try:
         sock.connect((address, port))
     except socket.timeout:
@@ -212,8 +218,8 @@ def tcp_query(address, port):
         return False, 'OSError'
     return True, 'port available confirm.'
 
-def mcbe_query(address, port):
-    # type: (str, int) -> tuple[bool, str]
+def mcbe_query(address, port, family = socket.AF_INET):
+    # type: (str, int, int) -> tuple[bool, str]
     """
     Method for querying a Bedrock server (Minecraft PE, Windows 10 or Education Edition).
     The protocol is based on the RakNet protocol.
@@ -224,10 +230,8 @@ def mcbe_query(address, port):
     Packet loss handling should be implemented (resending).
     """
 
-    
-
     # Create socket with type DGRAM (for UDP)
-    sock = new_udp_socket()
+    sock = new_udp_socket_advanced(family = family)
     sock.settimeout(10)
 
     try:

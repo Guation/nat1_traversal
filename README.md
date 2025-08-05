@@ -58,16 +58,20 @@ ISP最常使用的NAT方案为NAPT(Network Address Port Translation)，而在进
 $ python3 nat1_traversal.pyz -h
 [    INFO] 
 nat1_traversal.pyz [-h] [-l] [-r] [-c] [-d] [-v] [-q]
--h  --help                                显示本帮助
--l  --local [[local ip]:[local port]]     本地监听地址，省略ip时默认为0.0.0.0，省略port时默认为25565
-                                          此字段将覆盖config.json中的local字段
--r  --remote [[remote ip]:[remote port]]  转发目的地址，省略ip时默认为127.0.0.1，省略port时默认为25565
-                                          此字段将覆盖config.json中的remote字段
--c  --config <config.json>                DDNS配置文件
--d  --debug                               Debug模式
--v  --version                             显示版本
--t  --nat-type-test                       NAT类型测试（仅参考）
--q  --query [<server host>[:server port]] MC服务器MOTD查询，省略host时默认为127.0.0.1，省略port时默认为25565
+-h  --help                              显示本帮助
+-l  --local [[ip]:[port]]               本地监听地址，省略ip时默认为0.0.0.0，省略port时默认为25565
+                                        此字段将覆盖config.json中的local字段
+-r  --remote [[ip]:[port]]              转发目的地址，省略ip时默认为127.0.0.1，省略port时默认为25565
+                                        此字段将覆盖config.json中的remote字段
+-c  --config <config.json>              DDNS配置文件
+-d  --debug                             Debug模式
+-v  --version                           显示版本
+-t  --nat-type-test                     NAT类型测试（仅参考）
+-q  --query [<host>[:port]]             MC服务器MOTD查询，IPv6优先（Java+Bedrock）
+    --query-java [<host>[:port]]        JE服务器MOTD查询，仅IPv4，省略port时默认为25565
+    --query-java-v6 [<host>[:port]]     JE服务器MOTD查询，仅IPv6，省略port时默认为25565
+    --query-bedrock [<host>[:port]]     BE服务器MOTD查询，仅IPv4，省略port时默认为19132
+    --query-bedrock-v6 [<host>[:port]]  BE服务器MOTD查询，仅IPv6，省略port时默认为19132
 ```
 
 ### NAT类型检测

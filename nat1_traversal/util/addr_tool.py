@@ -43,24 +43,41 @@ def convert_addr(addr, default_ip):
         return (_convert_ip(tmp[0], default_ip), _convert_port(tmp[1], 25565))
     else:
         raise ValueError(
-            "地址格式错误"
+            "地址格式错误，仅能有一个分隔符"
         )
 
-def convert_mc_host(addr, default_port):
-    # type: (str | None, int) -> socket._RetAddress
+def convert_mc_host(addr):
+    # type: (str | None) -> socket._RetAddress
     if addr is None:
-        return ("127.0.0.1", default_port)
+        return ("", 0)
     addr = addr.strip()
     if not addr:
-        return ("127.0.0.1", default_port)
-    tmp = addr.split(":")
-    if len(tmp) == 2:
-        if not tmp[0]:
-            return ("127.0.0.1", _convert_port(tmp[1], default_port))
-        return (tmp[0], _convert_port(tmp[1], default_port))
-    elif len(tmp) == 1:
-        return (tmp[0], default_port)
+        return ("", 0)
+    if addr[0] == "[":
+        tmp = addr[1:].split("]")
+        if len(tmp) == 2:
+            if not tmp[1]:
+                tmp[1] = ":"
+            if tmp[1][0] != ":":
+                raise ValueError(
+                    "地址格式错误，无分隔符"
+                )
+            if not tmp[0]:
+                return ("", _convert_port(tmp[1][1:], 0))
+            return (tmp[0], _convert_port(tmp[1][1:], 0))
+        else:
+            raise ValueError(
+                "IPv6地址格式错误"
+            )
     else:
-        raise ValueError(
-            "地址格式错误"
-        )
+        tmp = addr.split(":")
+        if len(tmp) == 2:
+            if not tmp[0]:
+                return ("", _convert_port(tmp[1], 0))
+            return (tmp[0], _convert_port(tmp[1], 0))
+        elif len(tmp) == 1:
+            return (tmp[0], 0)
+        else:
+            raise ValueError(
+                "地址格式错误，过多分隔符"
+            )

@@ -72,7 +72,11 @@ def main():
     parser.add_argument('-d', '--debug', dest='D', action='store_true')
     parser.add_argument('-v', '--version', dest='V', action='store_true')
     parser.add_argument('-t', '--nat-type-test', dest='T', action='store_true')
-    parser.add_argument('-q', '--query', dest='Q', type=str, nargs='?', const=':')
+    parser.add_argument('-q', '--query', dest='Q', type=str, nargs='?', const=':0')
+    parser.add_argument('--query-java', dest='QJ', type=str, nargs='?', const=':0')
+    parser.add_argument('--query-java-v6', dest='QJ6', type=str, nargs='?', const=':0')
+    parser.add_argument('--query-bedrock', dest='QB', type=str, nargs='?', const=':0')
+    parser.add_argument('--query-bedrock-v6', dest='QB6', type=str, nargs='?', const=':0')
     args = parser.parse_args()
 
     init_logger(args.D)
@@ -80,29 +84,53 @@ def main():
     if args.H:
         info(
             "\n%s [-h] [-l] [-r] [-c] [-d] [-v] [-q]"
-            "\n-h  --help                                显示本帮助"
-            "\n-l  --local [[local ip]:[local port]]     本地监听地址，省略ip时默认为0.0.0.0，省略port时默认为25565"
-            "\n                                          此字段将覆盖config.json中的local字段"
-            "\n-r  --remote [[remote ip]:[remote port]]  转发目的地址，省略ip时默认为127.0.0.1，省略port时默认为25565"
-            "\n                                          此字段将覆盖config.json中的remote字段"
-            "\n-c  --config <config.json>                DDNS配置文件"
-            "\n-d  --debug                               Debug模式"
-            "\n-v  --version                             显示版本"
-            "\n-t  --nat-type-test                       NAT类型测试（仅参考）"
-            "\n-q  --query [<server host>[:server port]] MC服务器MOTD查询，省略host时默认为127.0.0.1，省略port时默认为25565"
+            "\n-h  --help                              显示本帮助"
+            "\n-l  --local [[ip]:[port]]               本地监听地址，省略ip时默认为0.0.0.0，省略port时默认为25565"
+            "\n                                        此字段将覆盖config.json中的local字段"
+            "\n-r  --remote [[ip]:[port]]              转发目的地址，省略ip时默认为127.0.0.1，省略port时默认为25565"
+            "\n                                        此字段将覆盖config.json中的remote字段"
+            "\n-c  --config <config.json>              DDNS配置文件"
+            "\n-d  --debug                             Debug模式"
+            "\n-v  --version                           显示版本"
+            "\n-t  --nat-type-test                     NAT类型测试（仅参考）"
+            "\n-q  --query [<host>[:port]]             MC服务器MOTD查询，IPv6优先（Java+Bedrock）"
+            "\n    --query-java [<host>[:port]]        JE服务器MOTD查询，仅IPv4，省略port时默认为25565"
+            "\n    --query-java-v6 [<host>[:port]]     JE服务器MOTD查询，仅IPv6，省略port时默认为25565"
+            "\n    --query-bedrock [<host>[:port]]     BE服务器MOTD查询，仅IPv4，省略port时默认为19132"
+            "\n    --query-bedrock-v6 [<host>[:port]]  BE服务器MOTD查询，仅IPv6，省略port时默认为19132"
         , sys.argv[0])
         sys.exit(0)
     if args.V:
         info(VERSION)
         sys.exit(0)
-    if args.Q:
-        status, msg = mcje_query(*srv_query("_minecraft._tcp.", *convert_mc_host(args.Q, 25565)))
-        if status:
-            info(msg)
-            sys.exit(0)
-        else:
-            warning("服务器离线：%s", msg)
-            sys.exit(1)
+    if args.Q or args.QJ or args.QJ6 or args.QB or args.QB6:
+        if args.Q or args.QJ or args.QJ6:
+            server_ip, server_port = srv_query("_minecraft._tcp.", *convert_mc_host(args.Q or args.QJ6 or args.QJ), 25565)
+            status = False
+            if not status and (args.Q or args.QJ6):
+                status, msg = mcje_query(server_ip, server_port, socket.AF_INET6)
+                if status:
+                    info("MCJE: %s", msg)
+            if not status and (args.Q or args.QJ):
+                status, msg = mcje_query(server_ip, server_port, socket.AF_INET)
+                if status:
+                    info("MCJE: %s", msg)
+            if not status:
+                warning("MCJE: 服务器离线")
+        if args.Q or args.QB or args.QB6:
+            server_ip, server_port = srv_query("_minecraft._udp.", *convert_mc_host(args.Q or args.QB6 or args.QB), 19132)
+            status = False
+            if not status and (args.Q or args.QB6):
+                status, msg = mcbe_query(server_ip, server_port, socket.AF_INET6)
+                if status:
+                    info("MCBE: %s", msg)
+            if not status and (args.Q or args.QB):
+                status, msg = mcbe_query(server_ip, server_port, socket.AF_INET)
+                if status:
+                    info("MCBE: %s", msg)
+            if not status:
+                warning("MCBE: 服务器离线")
+        sys.exit(0)
     try:
         local_addr = convert_addr(args.L, "0.0.0.0")
     except ValueError as e:
@@ -112,7 +140,8 @@ def main():
         sys.exit(1)
     if args.T:
         info("正在进行NAT类型测试")
-        info("NAT%s", nat_type_test(local_addr)[1])
+        info("TCP: NAT%s", nat_type_test(local_addr, TYPE_TCP)[1])
+        info("UDP: NAT%s", nat_type_test(local_addr, TYPE_UDP)[1])
         sys.exit(0)
     if not os.path.isfile(args.C):
         error("DDNS配置文件 %s 未找到" , os.path.abspath(args.C))

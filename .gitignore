@@ -1,2 +1,6 @@
 __pycache__
 .vscode
+/build/
+/dist/
+/nat1_traversal.egg-info/
+/nat1_traversal.pyz
