@@ -43,8 +43,8 @@ ISP最常使用的NAT方案为NAPT(Network Address Port Translation)，而在进
 |配置难度|中等|简单|简单|
 |自身网络限制|FULL CONE|无|无|
 |费用|免费|昂贵|中等|
-|可用性|单线^1^|单线/BGP^2^|单线/BGP^2^|
-|上行速率/流量限制|无^3^|有|有|
+|可用性|单线<sup>1</sup>|单线/BGP<sup>2</sup>|单线/BGP<sup>2</sup>|
+|上行速率/流量限制|无<sup>3</sup>|有|有|
 
 1. 移动与电信联通之间跨运营商存在严重QoS现象，可能导致服务不可用
 2. 单线或BGP取决于供应商，单线时同样存在跨运营商QoS现象
@@ -54,7 +54,7 @@ ISP最常使用的NAT方案为NAPT(Network Address Port Translation)，而在进
 
 ### 命令行参数
 
-```shell
+```
 $ python3 nat1_traversal.pyz -h
 [    INFO] 
 nat1_traversal.pyz [-h] [-l] [-r] [-c] [-d] [-v] [-q]
@@ -71,7 +71,7 @@ nat1_traversal.pyz [-h] [-l] [-r] [-c] [-d] [-v] [-q]
     --query-java [<host>[:port]]        JE服务器MOTD查询，仅IPv4，省略port时默认为25565
     --query-java-v6 [<host>[:port]]     JE服务器MOTD查询，仅IPv6，省略port时默认为25565
     --query-bedrock [<host>[:port]]     BE服务器MOTD查询，仅IPv4，省略port时默认为19132
-    --query-bedrock-v6 [<host>[:port]]  BE服务器MOTD查询，仅IPv6，省略port时默认为19132
+    --query-bedrock-v6 [<host>[:port]]  BE服务器MOTD查询，仅IPv6，省略port时默认为19133
 ```
 
 ### NAT类型检测

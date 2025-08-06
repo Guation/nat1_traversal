@@ -12,8 +12,7 @@ from nat1_traversal.util.tcp_port_forwarder import start_tcp_port_forward
 from nat1_traversal.util.udp_port_forwarder import start_udp_port_forward
 from nat1_traversal.util.motd import mcje_query, srv_query, tcp_query, mcbe_query, udp_query
 from nat1_traversal.util.addr_tool import convert_addr, convert_mc_host
-
-VERSION = "1.0.6"
+from nat1_traversal.util.version import VERSION
 
 def register_exit():
     import signal
@@ -97,7 +96,7 @@ def main():
             "\n    --query-java [<host>[:port]]        JE服务器MOTD查询，仅IPv4，省略port时默认为25565"
             "\n    --query-java-v6 [<host>[:port]]     JE服务器MOTD查询，仅IPv6，省略port时默认为25565"
             "\n    --query-bedrock [<host>[:port]]     BE服务器MOTD查询，仅IPv4，省略port时默认为19132"
-            "\n    --query-bedrock-v6 [<host>[:port]]  BE服务器MOTD查询，仅IPv6，省略port时默认为19132"
+            "\n    --query-bedrock-v6 [<host>[:port]]  BE服务器MOTD查询，仅IPv6，省略port时默认为19133"
         , sys.argv[0])
         sys.exit(0)
     if args.V:
