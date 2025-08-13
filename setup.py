@@ -4,10 +4,16 @@
 __author__ = "Guation"
 
 from setuptools import setup, find_packages
+import pathlib
+
+VERSION = None
+
+with open(pathlib.Path(__file__).parent.joinpath("nat1_traversal/util/version.py")) as f:
+    exec(f.read())
 
 setup(
     name='nat1_traversal',
-    version='1.0.2',
+    version=VERSION,
     author="Guation",
     packages=['nat1_traversal', 'nat1_traversal.dns', 'nat1_traversal.util'],
     entry_points={

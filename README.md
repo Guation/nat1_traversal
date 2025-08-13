@@ -129,8 +129,10 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 
 此时如果测试结果为`FULL CONE`则代表您已完成配置，可进行开服。
 
-### 修改 config.json 文件中的dns配置信息
-对于不同dns供应商，我们都提供了形如`config.供应商名.json`的配置模板以供参考，您可以使用`-c /path/to/your_config.json`的方法指定您的配置路径，也可以默认使用当前目录下的`config.json`。
+### 修改 config.json 文件中的配置信息
+对于不同dns供应商，我们都提供了形如`config.供应商名.json`的配置模板以供参考，您可以使用`-c /path/to/your_config.json`的方法指定您的配置路径，不使用`-c`指定路径时默认使用当前目录下的`config.json`。
+
+当您在终端中运行本程序，且指定路径的配置文件不存在时，程序将询问您是否在该位置使用默认配置生成配置文件。当指定路径的父目录不存在时配置文件将生成失败。
 #### 字段解释
 - type: 映射的服务类型
   - mcje: JAVA版Minecraft，端口绑定到`_minecraft._tcp.`（默认）
@@ -143,6 +145,7 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
   - cloudflare
   - dynv6
   - no_dns: 不使用dns（默认）
+  - webhook: 使用自定义URL接收POST消息
 
 - id: 您登录dns管理界面的登录邮箱或者用户名，有些供应商无需提供此字段，此时值应为`null`
 
@@ -158,9 +161,13 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 
 #### id和token的获取方法
 
-- [cloudflare](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/) 推荐使用`API Token`作为token而将id留空，请确保token具有指定zone的edit权限
+- [cloudflare](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/) 推荐使用`API Token`作为token而将id置为`null`，请确保token具有指定zone的edit权限。
 
-- [dynv6](https://dynv6.com/keys) 使用`HTTP Tokens`作为token将id留空，推荐设置为仅对指定zone有效
+- [dynv6](https://dynv6.com/keys) 使用`HTTP Tokens`作为token将id置为`null`，推荐设置为仅对指定zone有效。
+
+- [webhook](./nat1_traversal/dns/webhook.py) 使用id作为POST请求的URL，当token不为`null`时请求头将携带`Bearer Authentication`参数。
+  - A记录请求体：`{"name": "{sub_domain}.{domain}", "data": "xx.xx.xx.xx", "type": "A"}`
+  - SRV记录请求体：`{"name": "{srv_prefix}{sub_domain}.{domain}", "data": "{sub_domain}.{domain}", "type": "SRV", "priority": 10, "weight": 0, "port": yyyy}`
 
 
 ### Minecraft: Java Edition 开服

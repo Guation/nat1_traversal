@@ -1,0 +1,10 @@
+{
+    "type": "mcje",
+    "dns": "webhook",
+    "id": "https://dns.example.com/update_info",
+    "token": "xxx",
+    "domain": "example.com",
+    "sub_domain": "mc",
+    "local": null,
+    "remote": null
+}

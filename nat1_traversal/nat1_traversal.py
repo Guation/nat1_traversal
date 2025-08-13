@@ -88,7 +88,7 @@ def main():
             "\n                                        此字段将覆盖config.json中的local字段"
             "\n-r  --remote [[ip]:[port]]              转发目的地址，省略ip时默认为127.0.0.1，省略port时默认为25565"
             "\n                                        此字段将覆盖config.json中的remote字段"
-            "\n-c  --config <config.json>              DDNS配置文件"
+            "\n-c  --config <config.json>              DDNS配置文件，不指定时默认为当前目录的config.json"
             "\n-d  --debug                             Debug模式"
             "\n-v  --version                           显示版本"
             "\n-t  --nat-type-test                     NAT类型测试（仅参考）"
@@ -97,6 +97,16 @@ def main():
             "\n    --query-java-v6 [<host>[:port]]     JE服务器MOTD查询，仅IPv6，省略port时默认为25565"
             "\n    --query-bedrock [<host>[:port]]     BE服务器MOTD查询，仅IPv4，省略port时默认为19132"
             "\n    --query-bedrock-v6 [<host>[:port]]  BE服务器MOTD查询，仅IPv6，省略port时默认为19133"
+            "\n"
+            "\nconfig.json 详见README"
+            "\ntype(String)                            mcje|mcbe|web|tcp|udp"
+            "\ndns(String)                             no_dns|cloudflare|dynv6|webhook"
+            "\nid(String|null)"
+            "\ntoken(String|null)"
+            "\ndomain(String)"
+            "\nsub_domain(String)"
+            "\nlocal(String|null)"
+            "\nremote(String|null)"
         , sys.argv[0])
         sys.exit(0)
     if args.V:
@@ -151,9 +161,6 @@ def main():
         info("TCP: NAT%s", nat_type_test(local_addr, TYPE_TCP)[1])
         info("UDP: NAT%s", nat_type_test(local_addr, TYPE_UDP)[1])
         sys.exit(0)
-    if not os.path.isfile(args.C):
-        error("DDNS配置文件 %s 未找到" , os.path.abspath(args.C))
-        sys.exit(1)
     config = {
         "type": "mcje",
         "dns": "no_dns",
@@ -164,6 +171,19 @@ def main():
         "local": None,
         "remote": None
     }
+    if not os.path.isfile(args.C):
+        error("DDNS配置文件 %s 未找到" , os.path.abspath(args.C))
+        try:
+            if sys.stdin.isatty():
+                gen_config = input("是否生成新配置[y/N]：")
+                if gen_config.upper().startswith("Y"):
+                    with open(args.C, "w") as f:
+                        f.write(json.dumps(config, indent=4, ensure_ascii=False))
+                        f.flush()
+                    info("DDNS配置文件 %s 已生成" , os.path.abspath(args.C))
+        except (EOFError, OSError):
+            debug(traceback.format_exc())
+        sys.exit(1)
     try:
         with open(args.C, "r") as f:
             config_s1 = f.read()
