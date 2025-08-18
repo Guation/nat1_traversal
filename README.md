@@ -161,14 +161,17 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 
 #### id和token的获取方法
 
-- [cloudflare](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/) 推荐使用`API Token`作为token而将id置为`null`，请确保token具有指定zone的edit权限。
+- [cloudflare](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/) 推荐使用`API Token`作为`token`而将`id`置为`null`，请确保token具有指定zone的edit权限。
 
-- [dynv6](https://dynv6.com/keys) 使用`HTTP Tokens`作为token将id置为`null`，推荐设置为仅对指定zone有效。
+- [dynv6](https://dynv6.com/keys) 使用`HTTP Tokens`作为`token`将`id`置为`null`，推荐设置为仅对指定zone有效。
 
-- [webhook](./nat1_traversal/dns/webhook.py) 使用id作为POST请求的URL，当token不为`null`时请求头将携带`Bearer Authentication`参数。
-  - A记录请求体：`{"name": "{sub_domain}.{domain}", "data": "xx.xx.xx.xx", "type": "A"}`
-  - SRV记录请求体：`{"name": "{srv_prefix}{sub_domain}.{domain}", "data": "{sub_domain}.{domain}", "type": "SRV", "priority": 10, "weight": 0, "port": yyyy}`
+- [webhook](./nat1_traversal/dns/webhook.py) 使用id作为POST请求的URL，URL需以`http://`或`https://`开头，当token不为`null`时请求头将携带`Bearer Authentication`参数。
+  - A记录请求体：`{"name": "{sub_domain}", "data": "xx.xx.xx.xx", "type": "A", "domain": "{domain}"}`
+  - SRV记录请求体：`{"name": "{srv_prefix}{sub_domain}", "data": "{sub_domain}", "type": "SRV", "domain": "{domain}", "priority": 10, "weight": 0, "port": yyyy}`
 
+- [tencentcloud](https://console.cloud.tencent.com/cam) 新建用户->快速创建->访问方式:编程访问,用户权限:QcloudDNSPodFullAccess，使用`SecretId`作为`id`，使用`SecretKey`作为`token`。
+
+- [alidns](https://ram.console.aliyun.com/users) 创建用户->使用永久 AccessKey 访问->添加权限:AliyunDNSFullAccess，使用`AccessKey ID`作为`id`，使用`AccessKey Secret`作为`token`。
 
 ### Minecraft: Java Edition 开服
 #### Linux 3.9+ 共端口模式
@@ -193,7 +196,9 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 
 然后像往常一样启动服务器，如果您在日志中看见类似`Hooked bind: PID=1234, FD=5, setsockopt SO_REUSEPORT`的日志则代表修改已生效。
 
-使用`python3 nat1_traversal.pyz -l :25565`，如果一切顺利，那么您将能使用`config.json`中配置的域名进服。
+在`config.json`中将`local`值由`null`修改为`":25565"`。
+
+使用`python3 nat1_traversal.pyz`，如果一切顺利，那么您将能使用`config.json`中配置的域名进服。
 
 如果您的dns供应商设置为了`no_dns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:yyyy`的记录，可复制该地址连接到服务器。
 
@@ -212,9 +217,11 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 
 使用NAT1 Traversal作为中间代理转发MC服务器流量时无需对mc服务器做任何修改，唯一需值得注意的是您需要将mc服务器的端口设置为非`25565`的端口（例如`25566`），因为`25565`端口我们需要提供给NAT1 Traversal使用。
 
-Windows使用`.\nat1_traversal.exe -l :25565 -r :25566`
+在`config.json`中将`local`值由`null`修改为`":25565"`，将`remote`值由`null`修改为`":25566"`。
 
-MacOS/Linux使用`python3 nat1_traversal.pyz -l :25565 -r :25566`
+Windows使用`.\nat1_traversal.exe`
+
+MacOS/Linux使用`python3 nat1_traversal.pyz`
 
 如果一切顺利，那么您将能使用`config.json`中配置的域名进服。
 
@@ -327,7 +334,7 @@ shiv -e nat1_traversal.nat1_traversal:main -o nat1_traversal.pyz .
 ```
 git clone https://github.com/Guation/nat1_traversal.git
 cd nat1_traversal
-pip install pyinstaller requests dnspython
+pip install pyinstaller requests dnspython tencentcloud-sdk-python-dnspod alibabacloud_alidns20150109
 pyinstaller nat1_traversal.spec
 ```
 

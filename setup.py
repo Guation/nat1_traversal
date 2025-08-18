@@ -25,6 +25,8 @@ setup(
     install_requires=[
         "requests",
         "dnspython",
+        "tencentcloud-sdk-python-dnspod",
+        "alibabacloud_alidns20150109",
     ],
     project_urls={
         "url": "https://github.com/Guation/nat1_traversal",

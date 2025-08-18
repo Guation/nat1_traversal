@@ -6,6 +6,7 @@ __all__ = ["update_record", "init"]
 
 import requests, json
 from logging import debug, info, warning, error
+from .UserAgent import USER_AGENT
 
 __url: str = None
 __token: str = None
@@ -19,6 +20,7 @@ def request(method: str, params: dict = None):
     global __token
     headers = {
         "Content-type": "application/json",
+        "UserAgent": USER_AGENT,
     }
     if __token is not None:
         headers["Authorization"] = "Bearer " + __token
@@ -47,9 +49,10 @@ def update_record(sub_domain: str, domain: str, record_type: str, value: str, /,
             "不支持记录类型%s" % record_type
         )
     payload = {
-        "name": f"{sub_domain}.{domain}",
+        "name": sub_domain,
         "data": value,
         "type": record_type,
+        "domain": domain,
     }
     if record_type == "SRV":
         payload.update({

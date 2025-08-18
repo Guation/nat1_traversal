@@ -203,6 +203,8 @@ def main():
         debug(traceback.format_exc())
     try:
         dns = getattr(getattr(__import__("nat1_traversal.dns." + config["dns"]), "dns"), config["dns"])
+        assert hasattr(dns, "init")
+        assert hasattr(dns, "update_record")
         info("使用的DNS供应商为 %s", config["dns"])
     except Exception:
         error("不受支持的DNS供应商 %s", config["dns"])

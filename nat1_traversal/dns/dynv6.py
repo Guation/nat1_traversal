@@ -8,6 +8,7 @@ __all__ = ["update_record", "init"]
 
 import requests, json
 from logging import debug, info, warning, error
+from .UserAgent import USER_AGENT
 
 __token: str = None
 
@@ -20,6 +21,7 @@ def request(method: str, action: str, params: dict = None):
     headers = {
         "Content-type": "application/json",
         "Authorization": "Bearer " + __token,
+        "UserAgent": USER_AGENT,
     }
     debug("method=%s, action=%s, params=%s, headers=%s", method, action, params, headers)
     try:
