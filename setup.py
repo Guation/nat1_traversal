@@ -8,8 +8,7 @@ import pathlib
 
 VERSION = None
 
-with open(pathlib.Path(__file__).parent.joinpath("nat1_traversal/util/version.py")) as f:
-    exec(f.read())
+exec(pathlib.Path(__file__).parent.joinpath("nat1_traversal/util/version.py").read_text())
 
 setup(
     name='nat1_traversal',
