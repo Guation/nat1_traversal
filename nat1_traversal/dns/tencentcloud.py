@@ -32,7 +32,7 @@ def request(action: str, params: dict = None):
     common_client = CommonClient("dnspod", "2021-03-23", cred, "", profile=clientProfile)
     debug("action=%s, params=%s", action, params)
     try:
-        return common_client.call_json("DescribeRecordList", params, headers)["Response"]
+        return common_client.call_json(action, params, headers)["Response"]
     except TencentCloudSDKException as e:
         raise ValueError(
             "%s 请求失败" % action
