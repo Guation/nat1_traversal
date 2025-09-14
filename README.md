@@ -132,6 +132,9 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 ### 修改 config.json 文件中的配置信息
 对于不同dns供应商，我们都提供了形如`config.供应商名.json`的配置模板以供参考，您可以使用`-c /path/to/your_config.json`的方法指定您的配置路径，不使用`-c`指定路径时默认使用当前目录下的`config.json`。
 
+> ⚠️注意：
+> `config.json`文件仅支持`utf-8`和`gb18030/gbk/gb2312`（Windows中文版环境下记事本显示为ANSI）编码。
+
 当您在终端中运行本程序，且指定路径的配置文件不存在时，程序将询问您是否在该位置使用默认配置生成配置文件。当指定路径的父目录不存在时配置文件将生成失败。
 #### 字段解释
 - type: 映射的服务类型

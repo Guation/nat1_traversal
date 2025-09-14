@@ -51,12 +51,14 @@ def request(action: str, params: dict = None):
         ) from e
 
 def search_recordid(sub_domain: str, domain: str) -> str:
+    domainPunycode1 = sub_domain.encode('idna').decode('ascii')
+    domainPunycode2 = sub_domain.encode().decode('idna')
     params = {
         "DomainName": domain,
         "PageSize": 500
     }
     for i in request("DescribeDomainRecords", params)["DomainRecords"]["Record"]:
-        if sub_domain == i["RR"]:
+        if domainPunycode1 == i["RR"] or domainPunycode2 == i["RR"]:
             return i["RecordId"]
     debug("无法搜索到前缀%s", sub_domain)
     return None

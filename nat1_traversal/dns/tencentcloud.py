@@ -39,12 +39,14 @@ def request(action: str, params: dict = None):
         ) from e
 
 def search_recordid(sub_domain: str, domain: str) -> int:
+    domainPunycode1 = sub_domain.encode('idna').decode('ascii')
+    domainPunycode2 = sub_domain.encode().decode('idna')
     params = {
         "Domain": domain,
         "Limit": 1000
     }
     for i in request("DescribeRecordList", params)["RecordList"]:
-        if sub_domain == i["Name"]:
+        if domainPunycode1 == i["Name"] or domainPunycode2 == i["Name"]:
             return i["RecordId"]
     debug("无法搜索到前缀%s", sub_domain)
     return None

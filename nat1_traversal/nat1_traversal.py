@@ -177,25 +177,29 @@ def main():
             if sys.stdin.isatty():
                 gen_config = input("是否生成新配置[y/N]：")
                 if gen_config.upper().startswith("Y"):
-                    with open(args.C, "w") as f:
-                        f.write(json.dumps(config, indent=4, ensure_ascii=False))
+                    with open(args.C, "wb") as f:
+                        f.write(json.dumps(config, indent=4, ensure_ascii=False).encode("utf-8"))
                         f.flush()
                     info("DDNS配置文件 %s 已生成" , os.path.abspath(args.C))
         except (EOFError, OSError):
             debug(traceback.format_exc())
         sys.exit(1)
     try:
-        with open(args.C, "r") as f:
+        with open(args.C, "rb") as f:
             config_s1 = f.read()
+            try:
+                config_s1 = config_s1.decode("utf-8").encode("utf-8")
+            except UnicodeDecodeError:
+                config_s1 = config_s1.decode("gb18030").encode("utf-8")
             config.update(json.loads(config_s1))
     except Exception:
         error("DDNS配置文件 %s 读取失败", os.path.abspath(args.C))
         debug(traceback.format_exc())
         sys.exit(1)
     try:
-        config_s2 = json.dumps(config, indent=4, ensure_ascii=False)
+        config_s2 = json.dumps(config, indent=4, ensure_ascii=False).encode("utf-8")
         if config_s1 != config_s2:
-            with open(args.C, "w") as f:
+            with open(args.C, "wb") as f:
                 f.write(config_s2)
                 f.flush()
     except Exception:

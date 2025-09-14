@@ -59,16 +59,20 @@ def request(method: str, action: str, params: dict = None):
         ) from e
 
 def search_zoneid(domain: str) -> str:
+    domainPunycode1 = domain.encode('idna').decode('ascii')
+    domainPunycode2 = domain.encode().decode('idna')
     for i in request("GET", "/zones"):
-        if domain == i["name"]:
+        if domainPunycode1 == i["name"] or domainPunycode2 == i["name"]:
             return i["id"]
     raise ValueError(
         "无法搜索到域名%s" % domain
     )
 
 def search_recordid(sub_domain: str, zoneid: str) -> str:
+    domainPunycode1 = sub_domain.encode('idna').decode('ascii')
+    domainPunycode2 = sub_domain.encode().decode('idna')
     for i in request("GET", "/zones/%s/dns_records" % zoneid):
-        if sub_domain == i["name"]:
+        if domainPunycode1 == i["name"] or domainPunycode2 == i["name"]:
             return i["id"]
     debug("无法搜索到前缀%s", sub_domain)
     return None
