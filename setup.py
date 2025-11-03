@@ -22,7 +22,6 @@ setup(
     },
     include_package_data=True,
     install_requires=[
-        "urllib3==2.2.3",
         "requests",
         "dnspython",
         "tencentcloud-sdk-python-dnspod",
