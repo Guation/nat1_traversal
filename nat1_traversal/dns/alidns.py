@@ -10,7 +10,7 @@ from alibabacloud_tea_util import models as util_models
 from alibabacloud_openapi_util.client import Client as OpenApiUtilClient
 from alibabacloud_tea_openapi.exceptions import AlibabaCloudException
 from logging import debug, info, warning, error
-from .UserAgent import USER_AGENT
+from .util import USER_AGENT, domain2punycode
 
 __id: str = None
 __token: str = None
@@ -51,14 +51,13 @@ def request(action: str, params: dict = None):
         ) from e
 
 def search_recordid(sub_domain: str, domain: str) -> str:
-    domainPunycode1 = sub_domain.encode('idna').decode('ascii')
-    domainPunycode2 = sub_domain.encode().decode('idna')
+    domainPunycode = domain2punycode(sub_domain)
     params = {
         "DomainName": domain,
         "PageSize": 500
     }
     for i in request("DescribeDomainRecords", params)["DomainRecords"]["Record"]:
-        if domainPunycode1 == i["RR"] or domainPunycode2 == i["RR"]:
+        if domain2punycode(i["RR"]) == domainPunycode:
             return i["RecordId"]
     debug("无法搜索到前缀%s", sub_domain)
     return None

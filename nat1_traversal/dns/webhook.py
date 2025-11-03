@@ -6,7 +6,7 @@ __all__ = ["update_record", "init"]
 
 import requests, json
 from logging import debug, info, warning, error
-from .UserAgent import USER_AGENT
+from .util import USER_AGENT, domain2punycode
 
 __url: str = None
 __token: str = None

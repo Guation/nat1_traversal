@@ -8,7 +8,7 @@ __all__ = ["update_record", "init"]
 
 import requests, json
 from logging import debug, info, warning, error
-from .UserAgent import USER_AGENT
+from .util import USER_AGENT, domain2punycode
 
 __token: str = None
 
@@ -43,20 +43,18 @@ def request(method: str, action: str, params: dict = None):
         ) from e
 
 def search_zoneid(domain: str) -> int:
-    domainPunycode1 = domain.encode('idna').decode('ascii')
-    domainPunycode2 = domain.encode().decode('idna')
+    domainPunycode = domain2punycode(domain)
     for i in request("GET", "/zones"):
-        if domainPunycode1 == i["name"] or domainPunycode2 == i["name"]:
+        if domain2punycode(i["name"]) == domainPunycode:
             return i["id"]
     raise ValueError(
         "无法搜索到域名%s" % domain
     )
 
 def search_recordid(sub_domain: str, zoneid: int) -> int:
-    domainPunycode1 = sub_domain.encode('idna').decode('ascii')
-    domainPunycode2 = sub_domain.encode().decode('idna')
+    domainPunycode = domain2punycode(sub_domain)
     for i in request("GET", "/zones/%d/records" % zoneid):
-        if domainPunycode1 == i["name"] or domainPunycode2 == i["name"]:
+        if domain2punycode(i["name"]) == domainPunycode:
             return i["id"]
     debug("无法搜索到前缀%s", sub_domain)
     return None

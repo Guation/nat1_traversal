@@ -147,6 +147,8 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 - dns: dns供应商名称
   - cloudflare
   - dynv6
+  - tencentcloud
+  - alidns
   - no_dns: 不使用dns（默认）
   - webhook: 使用自定义URL接收POST消息
 

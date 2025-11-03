@@ -10,7 +10,7 @@ from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentClo
 from tencentcloud.common.profile.client_profile import ClientProfile
 from tencentcloud.common.profile.http_profile import HttpProfile
 from logging import debug, info, warning, error
-from .UserAgent import USER_AGENT
+from .util import USER_AGENT, domain2punycode
 
 __id: str = None
 __token: str = None
@@ -39,14 +39,13 @@ def request(action: str, params: dict = None):
         ) from e
 
 def search_recordid(sub_domain: str, domain: str) -> int:
-    domainPunycode1 = sub_domain.encode('idna').decode('ascii')
-    domainPunycode2 = sub_domain.encode().decode('idna')
+    domainPunycode = domain2punycode(sub_domain)
     params = {
         "Domain": domain,
         "Limit": 1000
     }
     for i in request("DescribeRecordList", params)["RecordList"]:
-        if domainPunycode1 == i["Name"] or domainPunycode2 == i["Name"]:
+        if domain2punycode(i["Name"]) == domainPunycode:
             return i["RecordId"]
     debug("无法搜索到前缀%s", sub_domain)
     return None

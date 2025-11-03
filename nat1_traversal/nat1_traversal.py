@@ -110,7 +110,7 @@ def main():
         , sys.argv[0])
         sys.exit(0)
     if args.V:
-        info(VERSION)
+        info("NAT1 Traversal %s (Python %s)", VERSION, sys.version)
         sys.exit(0)
     if args.Q or args.QJ or args.QJ6 or args.QB or args.QB6:
         if args.Q or args.QJ or args.QJ6:
@@ -177,8 +177,8 @@ def main():
             if sys.stdin.isatty():
                 gen_config = input("是否生成新配置[y/N]：")
                 if gen_config.upper().startswith("Y"):
-                    with open(args.C, "wb") as f:
-                        f.write(json.dumps(config, indent=4, ensure_ascii=False).encode("utf-8"))
+                    with open(args.C, "w") as f:
+                        f.write(json.dumps(config, indent=4, ensure_ascii=False))
                         f.flush()
                     info("DDNS配置文件 %s 已生成" , os.path.abspath(args.C))
         except (EOFError, OSError):
@@ -186,22 +186,29 @@ def main():
         sys.exit(1)
     try:
         with open(args.C, "rb") as f:
-            config_s1 = f.read()
+            config_b1 = f.read()
             try:
-                config_s1 = config_s1.decode("utf-8").encode("utf-8")
+                config_s = config_b1.decode()
             except UnicodeDecodeError:
-                config_s1 = config_s1.decode("gb18030").encode("utf-8")
-            config.update(json.loads(config_s1))
+                try:
+                    config_s = config_b1.decode(json.detect_encoding(config_b1))
+                except UnicodeDecodeError:
+                    error("无法识别DDNS配置文件 %s 所使用的编码格式", os.path.abspath(args.C))
+                    sys.exit(1)
+            config.update(json.loads(config_s))
+            del config_s
     except Exception:
         error("DDNS配置文件 %s 读取失败", os.path.abspath(args.C))
         debug(traceback.format_exc())
         sys.exit(1)
     try:
-        config_s2 = json.dumps(config, indent=4, ensure_ascii=False).encode("utf-8")
-        if config_s1 != config_s2:
+        config_b2 = json.dumps(config, indent=4, ensure_ascii=False).encode()
+        if config_b1 != config_b2:
             with open(args.C, "wb") as f:
-                f.write(config_s2)
+                f.write(config_b2)
                 f.flush()
+        del config_b1
+        del config_b2
     except Exception:
         warning("DDNS配置文件 %s 回写失败", os.path.abspath(args.C))
         debug(traceback.format_exc())
