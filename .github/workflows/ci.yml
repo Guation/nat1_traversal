@@ -15,6 +15,15 @@ on:
 jobs:
   release:
     runs-on: windows-latest
+
+    strategy:
+      matrix:
+        include:
+          - python-version: "3.8"
+            artifact-name: "NAT1_Traversal_py3.8"
+          - python-version: "3.14"
+            artifact-name: "NAT1_Traversal"
+
     steps:
     - uses: actions/checkout@v4
       with:
@@ -24,7 +33,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.13'
+        python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
       run: |
@@ -45,7 +54,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: build-artifact
+        name: ${{ matrix.artifact-name }}
         path: |
           hook_bind/
           nat1_traversal.pyz
