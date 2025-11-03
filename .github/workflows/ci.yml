@@ -29,7 +29,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller shiv wheel urllib3==2.2.3 requests dnspython tencentcloud-sdk-python-dnspod alibabacloud_alidns20150109
+        pip install pyinstaller shiv wheel requests dnspython tencentcloud-sdk-python-dnspod alibabacloud_alidns20150109
 
     - name: Create version
       if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.is_release) }}

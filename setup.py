@@ -24,7 +24,7 @@ setup(
     install_requires=[
         "urllib3==2.2.3",
         "requests",
-        "dnspython",
+        "dnspython==2.6.1",
         "tencentcloud-sdk-python-dnspod",
         "alibabacloud_alidns20150109",
     ],
