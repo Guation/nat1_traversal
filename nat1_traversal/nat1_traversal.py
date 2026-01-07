@@ -283,7 +283,7 @@ def main():
     register_exit()
     def update_dns(ip: str, port: int):
         nonlocal dns, config, srv_prefix
-        info("获取到映射地址： %s:%s", ip, port)
+        info("开始更新DDNS记录")
         for _ in range(3):
             try:
                 dns.update_record(config["sub_domain"], config["domain"], "A", ip)
@@ -308,6 +308,12 @@ def main():
                 error("获取映射地址失败：%s", e)
                 debug(traceback.format_exc())
                 time.sleep(10)
+                continue
+            info("获取到映射地址： %s:%s", *mapped_addr)
+            status, msg = query_function(*mapped_addr)
+            if not status:
+                error("映射地址不可用，开始重新映射，%s", msg)
+                time.sleep(1)
                 continue
             threading.Thread(target=update_dns, args=mapped_addr).start()
             remote_online_filter = logger_filter(1800)
