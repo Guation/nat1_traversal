@@ -24,7 +24,6 @@ setup(
     install_requires=[
         "requests",
         "dnspython",
-        "tencentcloud-sdk-python-dnspod",
     ],
     project_urls={
         "url": "https://github.com/Guation/nat1_traversal",

@@ -40,7 +40,7 @@ def request(method: str, action: str, params: dict = None):
         r = response.content
         if response.status_code != 200:
             raise ValueError(
-                'action=%s, status_code=%d, response=%s' % (action, response.status_code, r)
+                '服务器拒绝了请求：action=%s, status_code=%d, response=%s' % (action, response.status_code, r)
             )
         else:
             j = json.loads(r)
@@ -49,7 +49,7 @@ def request(method: str, action: str, params: dict = None):
                 return j["result"]
             else:
                 raise ValueError(
-                    'action=%s, response=%s' % (action, j)
+                    '服务器返回错误：action=%s, response=%s' % (action, j)
                 )
     except ValueError:
         raise
