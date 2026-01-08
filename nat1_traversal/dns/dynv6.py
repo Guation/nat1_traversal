@@ -21,7 +21,7 @@ def request(method: str, action: str, params: dict = None):
     headers = {
         "Content-type": "application/json",
         "Authorization": "Bearer " + __token,
-        "UserAgent": USER_AGENT,
+        "User-Agent": USER_AGENT,
     }
     debug("method=%s, action=%s, params=%s, headers=%s", method, action, params, headers)
     try:

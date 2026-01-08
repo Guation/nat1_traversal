@@ -32,7 +32,7 @@ def request(method: str, action: str, params: dict = None):
             "Content-type": "application/json",
             "X-Auth-Email": __id,
             "X-Auth-Key": __token,
-            "UserAgent": USER_AGENT,
+            "User-Agent": USER_AGENT,
         }
     debug("method=%s, action=%s, params=%s, headers=%s", method, action, params, headers)
     try:

@@ -4,11 +4,8 @@
 __author__ = "Guation"
 __all__ = ["update_record", "init"]
 
-from alibabacloud_tea_openapi.client import Client as OpenApiClient
-from alibabacloud_tea_openapi import models as open_api_models
-from alibabacloud_tea_util import models as util_models
-from alibabacloud_openapi_util.client import Client as OpenApiUtilClient
-from alibabacloud_tea_openapi.exceptions import AlibabaCloudException
+import time, uuid, hashlib, hmac, requests, json
+from urllib.parse import quote, urlencode
 from logging import debug, info, warning, error
 from .util import USER_AGENT, domain2punycode
 
@@ -20,32 +17,58 @@ def init(id: str, token: str):
     __id = id
     __token = token
 
+def flattening_params(params, prefix = "", upper_params: dict = None):
+    if upper_params is None:
+        upper_params = {}
+    if params is None:
+        return upper_params
+    elif isinstance(params, (list, tuple)):
+        for i, item in enumerate(params):
+            flattening_params(item, f"{prefix}.{i + 1}", upper_params)
+    elif isinstance(params, dict):
+        for sub_key, sub_value in params.items():
+            flattening_params(sub_value, f"{prefix}.{sub_key}", upper_params)
+    else:
+        prefix = prefix.lstrip(".")
+        upper_params[prefix] = params.decode("utf-8") if isinstance(params, bytes) else str(params)
+    return upper_params
+
 def request(action: str, params: dict = None):
-    client = OpenApiClient(open_api_models.Config(
-        type='access_key',
-        access_key_id = __id,
-        access_key_secret = __token,
-        endpoint = f'alidns.aliyuncs.com',
-        user_agent = USER_AGENT
-    ))
-    models_params = open_api_models.Params(
-        action=action,
-        version='2015-01-09',
-        protocol='HTTPS',
-        method='POST',
-        auth_type='AK',
-        style='RPC',
-        pathname=f'/',
-        req_body_type='json',
-        body_type='json'
+    headers = {
+        "host": "alidns.aliyuncs.com",
+        "x-acs-action": action,
+        "x-acs-version": "2015-01-09",
+        "x-acs-date": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+        "x-acs-signature-nonce": str(uuid.uuid4()),
+        "x-acs-content-sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+    headers = dict(sorted(headers.items()))
+    canonical_query_string = "&".join(
+        f"{quote(k)}={quote(str(v))}"
+        for k, v in sorted(flattening_params(params).items())
     )
-    runtime = util_models.RuntimeOptions()
-    request = open_api_models.OpenApiRequest(
-        query=OpenApiUtilClient.query(params)
-    )
+    canonical_headers = "\n".join(f"{k}:{v}" for k, v in headers.items()) + "\n"
+    signed_headers = ";".join(headers.keys())
+    canonical_request = "\n".join(["POST", "/", canonical_query_string, canonical_headers, signed_headers, headers["x-acs-content-sha256"]])
+    hashed_canonical_request = hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()
+    signature = hmac.new(__token.encode("utf-8"), f"ACS3-HMAC-SHA256\n{hashed_canonical_request}".encode("utf-8"), hashlib.sha256).digest().hex().lower()
+    headers["Authorization"] = f"ACS3-HMAC-SHA256 Credential={__id},SignedHeaders={signed_headers},Signature={signature}"
+    headers["User-Agent"] = USER_AGENT
+    debug("action=%s, params=%s, headers=%s", action, params, headers)
     try:
-        return client.call_api(models_params, request, runtime)["body"]
-    except AlibabaCloudException as e:
+        response = requests.request("POST", f"https://{headers['host']}/?{urlencode(params, doseq=True, safe='*')}", headers=headers)
+        r = response.content
+        if response.status_code != 200:
+            raise ValueError(
+                '服务器拒绝了请求：action=%s, status_code=%d, response=%s' % (action, response.status_code, r)
+            )
+        else:
+            j = json.loads(r)
+            debug("action=%s, response=%s", action, j)
+            return j
+    except ValueError:
+        raise
+    except Exception as e:
         raise ValueError(
             "%s 请求失败" % action
         ) from e

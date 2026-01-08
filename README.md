@@ -339,7 +339,7 @@ shiv -e nat1_traversal.nat1_traversal:main -o nat1_traversal.pyz .
 ```
 git clone https://github.com/Guation/nat1_traversal.git
 cd nat1_traversal
-pip install pyinstaller requests dnspython tencentcloud-sdk-python-dnspod alibabacloud_alidns20150109
+pip install pyinstaller requests dnspython tencentcloud-sdk-python-dnspod
 pyinstaller nat1_traversal.spec
 ```
 

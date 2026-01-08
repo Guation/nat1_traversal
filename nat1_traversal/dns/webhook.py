@@ -20,7 +20,7 @@ def request(method: str, params: dict = None):
     global __token
     headers = {
         "Content-type": "application/json",
-        "UserAgent": USER_AGENT,
+        "User-Agent": USER_AGENT,
     }
     if __token is not None:
         headers["Authorization"] = "Bearer " + __token
