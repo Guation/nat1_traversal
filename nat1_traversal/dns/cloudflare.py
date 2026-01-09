@@ -44,7 +44,7 @@ def request(method: str, action: str, params: dict = None):
             )
         else:
             j = json.loads(r)
-            if j.get("success"):
+            if "success" in j:
                 debug("action=%s, response=%s", action, j)
                 return j["result"]
             else:
