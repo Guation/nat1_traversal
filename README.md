@@ -133,7 +133,16 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 对于不同dns供应商，我们都提供了形如`config.供应商名.json`的配置模板以供参考，您可以使用`-c /path/to/your_config.json`的方法指定您的配置路径，不使用`-c`指定路径时默认使用当前目录下的`config.json`。
 
 > ⚠️注意：
-> `config.json`文件仅支持`utf-8`和`gb18030/gbk/gb2312`（Windows中文版环境下记事本显示为ANSI）编码。
+>
+> `config.json`文件优先使用本地编码，本地编码无法解码时尝试使用`utf-8`解码，无法解码将导致配置文件读取失败。
+>
+> - Linux环境本地编码默认为`utf-8`
+>
+> - Windows环境下本地编码在记事本中显示为`ANSI`
+>
+>     - Windows简体中文版默认为`cp936`（`GBK`）
+>
+>     - Windows繁体中文版默认为`cp950`（`Big5`）
 
 当您在终端中运行本程序，且指定路径的配置文件不存在时，程序将询问您是否在该位置使用默认配置生成配置文件。当指定路径的父目录不存在时配置文件将生成失败。
 #### 字段解释
@@ -195,8 +204,11 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 类似于`LD_PRELOAD=./hook_bind.so java @user_jvm_args.txt @libraries/net/neoforged/neoforge/21.1.133/unix_args.txt "$@"`
 
 > ⚠️注意：
+>
 > 如果您在使用面板管理您的服务器，请不要直接将`LD_PRELOAD=./hook_bind.so`加入到启动指令的`java`之前，
+>
 > 这会导致您无法启动您的服务器。因为该注入仅适用于使用[shell](https://github.com/bminor/bash)启动`java`的情况，不适用于基于[exec族](https://github.com/bminor/glibc/blob/258126bc0b77d7f9ae7d0b2737ec66e186c1e0ef/posix/unistd.h#L599)的管理面板启动`java`的情况。
+>
 > 您可以参阅[在面板中启用SO_REUSEPORT](./README_extend.md#在面板中启用SO_REUSEPORT)使hook适应您的管理面板。
 
 然后像往常一样启动服务器，如果您在日志中看见类似`Hooked bind: PID=1234, FD=5, setsockopt SO_REUSEPORT`的日志则代表修改已生效。
@@ -208,11 +220,17 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 如果您的dns供应商设置为了`no_dns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:yyyy`的记录，可复制该地址连接到服务器。
 
 > ⚠️警告：
+>
 > 由于此方案解除了单一进程对于一个端口的独占行为，
+>
 > 您可能会遇到多个MC服务器同时监听同一端口而**不会抛出**端口已被占用的提示，
+>
 > 此时您使用游戏客户端连接服务器时Linux内核将随机将您分配到其中一个服务器中。
+>
 > 此功能原本是用于均衡负载，但此时可能会造成多名玩家登录到不同服务器而无法观察到对方的混乱。
+>
 > 请您在运行MC服务器之前检查目标端口是否已被使用，避免多个MC服务器共用同一端口的行为。
+>
 > 如果出现了多个MC服务器共用同一端口的情况，本项目可能会误认为服务器MOTD在不断更新而不停在日志中输出MOTD。
 
 #### Windows/MacOS/Linux 转发模式
@@ -233,7 +251,9 @@ MacOS/Linux使用`python3 nat1_traversal.pyz`
 如果您的dns供应商设置为了`no_dns`那么您可以在NAT1 Traversal日志中找到形如`[    INFO] 获取到映射地址： xx.xx.xx.xx:yyyy`的记录，可复制该地址连接到服务器。
 
 > ⚠️提示：
+>
 > Windows中`cmd`和`powershell`默认启用的`快速编辑模式`可能会在您使用鼠标框选日志时将本项目挂起，
+>
 > 挂起期间程序无法转发或处理任何数据，如遇到挂起情况可使用回车键解除挂起，长期使用建议关闭`快速编辑模式`。
 
 ### Minecraft: Bedrock Edition 开服

@@ -207,11 +207,12 @@ def main():
             with open(args.C, "wb") as f:
                 f.write(config_b2)
                 f.flush()
-        del config_b1
-        del config_b2
     except Exception:
         warning("DDNS配置文件 %s 回写失败", os.path.abspath(args.C))
         debug(traceback.format_exc())
+    finally:
+        del config_b1
+        del config_b2
     try:
         dns = getattr(getattr(__import__("nat1_traversal.dns." + config["dns"]), "dns"), config["dns"])
         assert hasattr(dns, "init")
