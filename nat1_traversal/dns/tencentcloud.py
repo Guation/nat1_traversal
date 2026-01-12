@@ -32,7 +32,7 @@ def request(action: str, params: dict = None):
     headers = dict(sorted(headers.items()))
     canonical_headers = "\n".join(f"{k}:{v.lower()}" for k, v in headers.items()) + "\n"
     signed_headers = ";".join(headers.keys())
-    params_string = json.dumps(params, separators=(',', ":"))
+    params_string = json.dumps(params)
     canonical_request = "\n".join(["POST", "/", "", canonical_headers, signed_headers, hashlib.sha256(params_string.encode("utf-8")).hexdigest()])
     hashed_canonical_request = hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()
     secretSigning = hmac_sha256(hmac_sha256(hmac_sha256(b"TC3" + __token.encode("utf-8"), date), "dnspod"), "tc3_request")
