@@ -185,7 +185,7 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 
 - [tencentcloud](https://console.cloud.tencent.com/cam) 新建用户->快速创建->访问方式:编程访问,用户权限:QcloudDNSPodFullAccess，使用`SecretId`作为`id`，使用`SecretKey`作为`token`。
 
-- [alidns](https://ram.console.aliyun.com/users) 创建用户->使用永久 AccessKey 访问->添加权限:AliyunDNSFullAccess，使用`AccessKey ID`作为`id`，使用`AccessKey Secret`作为`token`。
+- [alidns](https://ram.console.aliyun.com/users) 创建用户->使用永久 AccessKey 访问->我确认必须创建 AccessKey->确定->勾选用户->新增授权->权限策略:AliyunDNSFullAccess->确认新增授权，使用`AccessKey ID`作为`id`，使用`AccessKey Secret`作为`token`。
 
 ### Minecraft: Java Edition 开服
 #### Linux 3.9+ 共端口模式
