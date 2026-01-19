@@ -5,6 +5,6 @@
     "token": null,
     "domain": "",
     "sub_domain": "",
-    "local": null,
+    "local": ":25565",
     "remote": null
 }

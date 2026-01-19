@@ -5,7 +5,7 @@
 
 __author__ = "Guation"
 
-import os, argparse, sys, json, traceback, socket, time, threading, multiprocessing
+import os, argparse, sys, json, traceback, socket, time, threading, multiprocessing, importlib
 from logging import debug, info, warning, error, DEBUG, INFO, basicConfig
 from nat1_traversal.util.stun import nat_type_test, get_self_ip_port, addr_available, TYPE_TCP, TYPE_UDP
 from nat1_traversal.util.tcp_port_forwarder import start_tcp_port_forward
@@ -13,6 +13,7 @@ from nat1_traversal.util.udp_port_forwarder import start_udp_port_forward
 from nat1_traversal.util.motd import mcje_query, srv_query, tcp_query, mcbe_query, udp_query
 from nat1_traversal.util.addr_tool import convert_addr, convert_mc_host
 from nat1_traversal.util.version import VERSION
+from nat1_traversal.dns.dns_base import dns_base
 
 def register_exit():
     import signal
@@ -72,10 +73,10 @@ def main():
     parser.add_argument('-v', '--version', dest='V', action='store_true')
     parser.add_argument('-t', '--nat-type-test', dest='T', action='store_true')
     parser.add_argument('-q', '--query', dest='Q', type=str, nargs='?', const=':0')
-    parser.add_argument('--query-java', dest='QJ', type=str, nargs='?', const=':0')
-    parser.add_argument('--query-java-v6', dest='QJ6', type=str, nargs='?', const=':0')
-    parser.add_argument('--query-bedrock', dest='QB', type=str, nargs='?', const=':0')
-    parser.add_argument('--query-bedrock-v6', dest='QB6', type=str, nargs='?', const=':0')
+    parser.add_argument('-qj', '--query-java', dest='QJ', type=str, nargs='?', const=':0')
+    parser.add_argument('-qj6', '--query-java-v6', dest='QJ6', type=str, nargs='?', const=':0')
+    parser.add_argument('-qb', '--query-bedrock', dest='QB', type=str, nargs='?', const=':0')
+    parser.add_argument('-qb6', '--query-bedrock-v6', dest='QB6', type=str, nargs='?', const=':0')
     args = parser.parse_args()
 
     init_logger(args.D)
@@ -83,24 +84,24 @@ def main():
     if args.H:
         info(
             "\n%s [-h] [-l] [-r] [-c] [-d] [-v] [-q]"
-            "\n-h  --help                              显示本帮助"
-            "\n-l  --local [[ip]:[port]]               本地监听地址，省略ip时默认为0.0.0.0，省略port时默认为25565"
-            "\n                                        此字段将覆盖config.json中的local字段"
-            "\n-r  --remote [[ip]:[port]]              转发目的地址，省略ip时默认为127.0.0.1，省略port时默认为25565"
-            "\n                                        此字段将覆盖config.json中的remote字段"
-            "\n-c  --config <config.json>              DDNS配置文件，不指定时默认为当前目录的config.json"
-            "\n-d  --debug                             Debug模式"
-            "\n-v  --version                           显示版本"
-            "\n-t  --nat-type-test                     NAT类型测试（仅参考）"
-            "\n-q  --query [<host>[:port]]             MC服务器MOTD查询，IPv6优先（Java+Bedrock）"
-            "\n    --query-java [<host>[:port]]        JE服务器MOTD查询，仅IPv4，省略port时默认为25565"
-            "\n    --query-java-v6 [<host>[:port]]     JE服务器MOTD查询，仅IPv6，省略port时默认为25565"
-            "\n    --query-bedrock [<host>[:port]]     BE服务器MOTD查询，仅IPv4，省略port时默认为19132"
-            "\n    --query-bedrock-v6 [<host>[:port]]  BE服务器MOTD查询，仅IPv6，省略port时默认为19133"
+            "\n-h   --help                              显示本帮助"
+            "\n-l   --local [[ip]:[port]]               本地监听地址，省略ip时默认为0.0.0.0，省略port时默认为25565"
+            "\n                                         此字段将覆盖config.json中的local字段"
+            "\n-r   --remote [[ip]:[port]]              转发目的地址，省略ip时默认为127.0.0.1，省略port时默认为25565"
+            "\n                                         此字段将覆盖config.json中的remote字段"
+            "\n-c   --config <config.json>              DDNS配置文件，不指定时默认为当前目录的config.json"
+            "\n-d   --debug                             Debug模式"
+            "\n-v   --version                           显示版本"
+            "\n-t   --nat-type-test                     NAT类型测试（仅参考）"
+            "\n-q   --query [<host>[:port]]             MC服务器MOTD查询，IPv6优先（Java+Bedrock）"
+            "\n-qj  --query-java [<host>[:port]]        JE服务器MOTD查询，仅IPv4，省略port时默认为25565"
+            "\n-qj6 --query-java-v6 [<host>[:port]]     JE服务器MOTD查询，仅IPv6，省略port时默认为25565"
+            "\n-qb  --query-bedrock [<host>[:port]]     BE服务器MOTD查询，仅IPv4，省略port时默认为19132"
+            "\n-qb6 --query-bedrock-v6 [<host>[:port]]  BE服务器MOTD查询，仅IPv6，省略port时默认为19133"
             "\n"
             "\nconfig.json 详见README"
-            "\ntype(String)                            mcje|mcbe|web|tcp|udp"
-            "\ndns(String)                             no_dns|cloudflare|dynv6|webhook"
+            "\ntype(String)                             mcje|mcbe|web|tcp|udp"
+            "\ndns(String)                              no_dns|cloudflare|dynv6|tencentcloud|alidns|webhook"
             "\nid(String|null)"
             "\ntoken(String|null)"
             "\ndomain(String)"
@@ -214,15 +215,12 @@ def main():
         del config_b1
         del config_b2
     try:
-        dns = getattr(getattr(__import__("nat1_traversal.dns." + config["dns"]), "dns"), config["dns"])
-        assert hasattr(dns, "init")
-        assert hasattr(dns, "update_record")
+        dns = getattr(importlib.import_module("nat1_traversal.dns." + config["dns"]), config["dns"])(config["id"], config["token"]) # type: dns_base
         info("使用的DNS供应商为 %s", config["dns"])
     except Exception:
         error("不受支持的DNS供应商 %s", config["dns"])
         debug(traceback.format_exc())
         sys.exit(1)
-    dns.init(config["id"], config["token"])
     try:
         remote_addr = convert_addr(args.R, "127.0.0.1")
     except ValueError as e:
@@ -287,14 +285,17 @@ def main():
         info("开始更新DDNS记录")
         for _ in range(3):
             try:
-                dns.update_record(config["sub_domain"], config["domain"], "A", ip)
-                dns.update_record(srv_prefix + config["sub_domain"], config["domain"], "SRV", config["sub_domain"], port=port)
+                dns.update_record_simple(srv_prefix, config["sub_domain"], config["domain"], ip, port)
                 info("DDNS更新成功 %s.%s", config["sub_domain"], config["domain"])
                 return
             except ValueError as e:
                 error("DDNS更新失败： %s", e)
                 time.sleep(3)
     if remote_addr is None:
+        if os.name == "nt":
+            error("Windows平台不支持共端口模式")
+            sys.exit(1)
+        info("共端口模式")
         local_online_filter = logger_filter(60) # 相同日志60次合并成1次
         while True:
             status, msg = query_function("127.0.0.1", local_addr[1])
@@ -328,6 +329,7 @@ def main():
                     if remote_online_filter(msg):
                         info("MOTD: %s", msg)
     else:
+        info("转发模式")
         multiprocessing.set_start_method("spawn")
         while True:
             try:

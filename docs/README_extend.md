@@ -52,14 +52,14 @@ exec java $@
 
 或者您应该采用更加通用的转发模式，当然这会对并发性能产生一些影响。
 
-您需要将`type`设置为`web`而不是默认的`mcje`，其余设置与[MCJE共端口模式](./README.md#linux-39-共端口模式)的配置方式完全相同。
+您需要将`type`设置为`web`而不是默认的`mcje`，其余设置与[MCJE共端口模式](../README.md#linux-39-共端口模式)的配置方式完全相同。
 
 您现在可以使用`域名:端口`的方式访问您的WEB应用，但是随着映射IP地址的更新，端口号也会一起发生变化，
 
 所以为了追踪端口的变化，您还需要根据[HTTP Redirect](https://github.com/Guation/http_redirect)项目的指引配置重定向，以固化域名访问入口。
 
 #### Windows/MacOS/Linux 转发模式
-您需要将`type`设置为`web`而不是默认的`mcje`，其余设置与[MCJE转发模式](./README.md#windowsmacoslinux-转发模式)的配置方式完全相同。
+您需要将`type`设置为`web`而不是默认的`mcje`，其余设置与[MCJE转发模式](../README.md#windowsmacoslinux-转发模式)的配置方式完全相同。
 
 您现在可以使用`域名:端口`的方式访问您的WEB应用，但是随着映射IP地址的更新，端口号也会一起发生变化，
 
@@ -71,10 +71,10 @@ exec java $@
 
 或者您应该采用更加通用的转发模式。
 
-您需要将`type`设置为`tcp`而不是默认的`mcje`，其余设置与[MCJE共端口模式](./README.md#linux-39-共端口模式)的配置方式完全相同。
+您需要将`type`设置为`tcp`而不是默认的`mcje`，其余设置与[MCJE共端口模式](../README.md#linux-39-共端口模式)的配置方式完全相同。
 
 #### Windows/MacOS/Linux 转发模式
-您需要将`type`设置为`tcp`而不是默认的`mcje`，其余设置与[MCJE转发模式](./README.md#windowsmacoslinux-转发模式)的配置方式完全相同。
+您需要将`type`设置为`tcp`而不是默认的`mcje`，其余设置与[MCJE转发模式](../README.md#windowsmacoslinux-转发模式)的配置方式完全相同。
 
 ### RDP远程桌面
 #### Windows/MacOS/Linux 转发模式

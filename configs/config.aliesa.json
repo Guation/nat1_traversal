@@ -1,0 +1,10 @@
+{
+    "type": "web",
+    "dns": "aliesa",
+    "id": "xxx",
+    "token": "xxx",
+    "domain": "example.com",
+    "sub_domain": "www",
+    "local": ":80",
+    "remote": null
+}

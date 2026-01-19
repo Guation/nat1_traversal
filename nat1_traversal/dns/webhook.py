@@ -2,62 +2,49 @@
 # -*- coding:utf-8 -*-
 
 __author__ = "Guation"
-__all__ = ["update_record", "init"]
+__all__ = ["webhook"]
 
 import requests, json
+from nat1_traversal.dns.dns_base import dns_base
 from logging import debug, info, warning, error
-from .util import USER_AGENT, domain2punycode
 
-__url: str = None
-__token: str = None
+class webhook(dns_base):
+    def __init__(self, id, token):
+        super().__init__(id, token)
+        self.url = self.id
 
-def init(url: str, token: str):
-    global __url, __token
-    __url = url
-    __token = token
-
-def request(method: str, params: dict = None):
-    global __token
-    headers = {
-        "Content-type": "application/json",
-        "User-Agent": USER_AGENT,
-    }
-    if __token is not None:
-        headers["Authorization"] = "Bearer " + __token
-    debug("method=%s, url=%s, params=%s, headers=%s", method, __url, params, headers)
-    try:
-        response = requests.request(method, __url, json=params, headers=headers)
-        r = response.content
-        if response.status_code != 200:
+    def request(self, method: str, params: dict = None):
+        headers = {
+            "Content-type": "application/json",
+            "User-Agent": self.USER_AGENT,
+        }
+        if self.token is not None:
+            headers["Authorization"] = "Bearer " + self.token
+        debug("method=%s, url=%s, params=%s, headers=%s", method, self.url, params, headers)
+        try:
+            response = requests.request(method, self.url, json=params, headers=headers)
+            r = response.content
+            if response.status_code != 200:
+                raise ValueError(
+                    '服务器拒绝了请求：url=%s, status_code=%d, response=%s' % (self.url, response.status_code, r)
+                )
+            else:
+                j = json.loads(r)
+                debug("url=%s, response=%s", self.url, j)
+                return j
+        except ValueError:
+            raise
+        except Exception as e:
             raise ValueError(
-                '服务器拒绝了请求：url=%s, status_code=%d, response=%s' % (__url, response.status_code, r)
-            )
-        else:
-            j = json.loads(r)
-            debug("url=%s, response=%s", __url, j)
-            return j
-    except ValueError:
-        raise
-    except Exception as e:
-        raise ValueError(
-            "%s 请求失败" % __url
-        ) from e
+                "%s 请求失败" % self.url
+            ) from e
 
-def update_record(sub_domain: str, domain: str, record_type: str, value: str, /, **params):
-    if record_type not in ["A", "SRV"]:
-        raise ValueError(
-            "不支持记录类型%s" % record_type
-        )
-    payload = {
-        "name": sub_domain,
-        "data": value,
-        "type": record_type,
-        "domain": domain,
-    }
-    if record_type == "SRV":
-        payload.update({
-            "priority": params.get("priority", 10),
-            "weight": params.get("weight", 0),
-            "port": params["port"],
-        })
-    return request("POST", payload)
+    def update_record_simple(self, srv_prefix: str, sub_domain: str, domain: str, ip: str, port: int):
+        payload = {
+            "srv_prefix": srv_prefix,
+            "sub_domain": sub_domain,
+            "domain": domain,
+            "ip": ip,
+            "port": port
+        }
+        self.request("POST", payload)

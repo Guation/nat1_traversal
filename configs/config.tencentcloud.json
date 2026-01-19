@@ -1,10 +1,10 @@
 {
     "type": "mcje",
-    "dns": "webhook",
-    "id": "https://dns.example.com/update_info",
+    "dns": "tencentcloud",
+    "id": "xxx",
     "token": "xxx",
     "domain": "example.com",
     "sub_domain": "mc",
-    "local": null,
+    "local": ":25565",
     "remote": null
 }

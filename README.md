@@ -180,8 +180,7 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 - [dynv6](https://dynv6.com/keys) 使用`HTTP Tokens`作为`token`将`id`置为`null`，推荐设置为仅对指定zone有效。
 
 - [webhook](./nat1_traversal/dns/webhook.py) 使用id作为POST请求的URL，URL需以`http://`或`https://`开头，当token不为`null`时请求头将携带`Bearer Authentication`参数。
-  - A记录请求体：`{"name": "{sub_domain}", "data": "xx.xx.xx.xx", "type": "A", "domain": "{domain}"}`
-  - SRV记录请求体：`{"name": "{srv_prefix}{sub_domain}", "data": "{sub_domain}", "type": "SRV", "domain": "{domain}", "priority": 10, "weight": 0, "port": yyyy}`
+  - 请求体：`{"srv_prefix": "{srv_prefix}, ""sub_domain": "{sub_domain}", "domain": "{domain}", "ip": "xx.xx.xx.xx", "port": yyyy}`
 
 - [tencentcloud](https://console.cloud.tencent.com/cam) 新建用户->快速创建->访问方式:编程访问,用户权限:QcloudDNSPodFullAccess，使用`SecretId`作为`id`，使用`SecretKey`作为`token`。
 
@@ -207,7 +206,7 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 >
 > 如果您在使用面板管理您的服务器，请不要直接将`LD_PRELOAD=./hook_bind.so`加入到启动指令的`java`之前，
 > 这会导致您无法启动您的服务器。因为该注入仅适用于使用[shell](https://github.com/bminor/bash)启动`java`的情况，不适用于基于[exec族](https://github.com/bminor/glibc/blob/258126bc0b77d7f9ae7d0b2737ec66e186c1e0ef/posix/unistd.h#L599)的管理面板启动`java`的情况。
-> 您可以参阅[在面板中启用SO_REUSEPORT](./README_extend.md#在面板中启用SO_REUSEPORT)使hook适应您的管理面板。
+> 您可以参阅[在面板中启用SO_REUSEPORT](./docs/README_extend.md#在面板中启用SO_REUSEPORT)使hook适应您的管理面板。
 
 然后像往常一样启动服务器，如果您在日志中看见类似`Hooked bind: PID=1234, FD=5, setsockopt SO_REUSEPORT`的日志则代表修改已生效。
 
@@ -300,7 +299,7 @@ MacOS/Linux使用`python3 nat1_traversal.pyz`
 玩家需要在游戏中搜索并添加您的Microsoft广播账户为好友，Broadcaster会自动同意好友申请，成功添加好友后玩家可以通过加入好友游戏的按钮加入您的服务器。
 
 ### 更多用法
-在寻找更多穿透姿势？HTTP(S)网站？RDP远程桌面？[点我查看](./README_extend.md#更多用法)
+在寻找更多穿透姿势？HTTP(S)网站？RDP远程桌面？[点我查看](./docs/README_extend.md#更多用法)
 
 ### 故障排查
 #### Windows
