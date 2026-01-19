@@ -154,14 +154,14 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
   - udp: 通用UDP应用，端口绑定到`_udp.`
 
 - dns: dns供应商名称
-  - no_dns: 不使用dns（默认）
+  - no_dns: 不使用/不更新到dns（默认）
   - cloudflare
   - dynv6
   - tencentcloud
-  - edgeone
-  - edgeone_intl
+  - edgeone: 仅web
+  - edgeone_intl: 仅web
   - alidns
-  - aliesa
+  - aliesa: 仅web
   - webhook: 使用自定义URL接收POST消息
 
 - id: 您登录dns管理界面的登录邮箱或者用户名，有些供应商无需提供此字段，此时值应为`null`
