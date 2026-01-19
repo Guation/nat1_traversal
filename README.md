@@ -154,11 +154,14 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
   - udp: 通用UDP应用，端口绑定到`_udp.`
 
 - dns: dns供应商名称
+  - no_dns: 不使用dns（默认）
   - cloudflare
   - dynv6
   - tencentcloud
+  - edgeone
+  - edgeone_intl
   - alidns
-  - no_dns: 不使用dns（默认）
+  - aliesa
   - webhook: 使用自定义URL接收POST消息
 
 - id: 您登录dns管理界面的登录邮箱或者用户名，有些供应商无需提供此字段，此时值应为`null`
@@ -182,9 +185,15 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 - [webhook](./nat1_traversal/dns/webhook.py) 使用id作为POST请求的URL，URL需以`http://`或`https://`开头，当token不为`null`时请求头将携带`Bearer Authentication`参数。
   - 请求体：`{"srv_prefix": "{srv_prefix}, ""sub_domain": "{sub_domain}", "domain": "{domain}", "ip": "xx.xx.xx.xx", "port": yyyy}`
 
-- [tencentcloud](https://console.cloud.tencent.com/cam) 新建用户->快速创建->访问方式:编程访问,用户权限:QcloudDNSPodFullAccess，使用`SecretId`作为`id`，使用`SecretKey`作为`token`。
+- [tencentcloud](https://console.cloud.tencent.com/cam) 新建用户->快速创建->访问方式:编程访问,用户权限:`QcloudDNSPodFullAccess`，使用`SecretId`作为`id`，使用`SecretKey`作为`token`。
 
-- [alidns](https://ram.console.aliyun.com/users) 创建用户->使用永久 AccessKey 访问->我确认必须创建 AccessKey->确定->勾选用户->新增授权->权限策略:AliyunDNSFullAccess->确认新增授权，使用`AccessKey ID`作为`id`，使用`AccessKey Secret`作为`token`。
+- [edgeone](https://console.cloud.tencent.com/cam) 新建用户->快速创建->访问方式:编程访问,用户权限:`QcloudTEOFullAccess`，使用`SecretId`作为`id`，使用`SecretKey`作为`token`。
+
+- [edgeone_intl](https://console.tencentcloud.com/cam) 新建用户->快速创建->访问方式:编程访问,用户权限:`QcloudTEOFullAccess`，使用`SecretId`作为`id`，使用`SecretKey`作为`token`。
+
+- [alidns](https://ram.console.aliyun.com/users) 创建用户->使用永久 AccessKey 访问->我确认必须创建 AccessKey->确定->勾选用户->新增授权->权限策略:`AliyunDNSFullAccess`->确认新增授权，使用`AccessKey ID`作为`id`，使用`AccessKey Secret`作为`token`。
+
+- [aliesa](https://ram.console.aliyun.com/users) 创建用户->使用永久 AccessKey 访问->我确认必须创建 AccessKey->确定->勾选用户->新增授权->权限策略:`AliyunESAFullAccess`->确认新增授权，使用`AccessKey ID`作为`id`，使用`AccessKey Secret`作为`token`。
 
 ### Minecraft: Java Edition 开服
 #### Linux 3.9+ 共端口模式
