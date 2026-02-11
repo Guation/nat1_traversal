@@ -101,7 +101,7 @@ def main():
             "\n"
             "\nconfig.json 详见README"
             "\ntype(String)                             mcje|mcbe|web|tcp|udp"
-            "\ndns(String)                              no_dns|cloudflare|dynv6|tencentcloud|alidns|webhook"
+            "\ndns(String)                              no_dns|cloudflare|dynv6|tencentcloud|edgeone|edgeone_intl|alidns|aliesa|webhook"
             "\nid(String|null)"
             "\ntoken(String|null)"
             "\ndomain(String)"
