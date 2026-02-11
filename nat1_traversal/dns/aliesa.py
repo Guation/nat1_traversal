@@ -46,7 +46,7 @@ class aliesa(alicloud_common):
             "无法搜索到前缀%s" % sub_domain
         )
 
-    def update_ip(self, domain: str, sub_domain: str, ip: str):
+    def update_ip(self, sub_domain: str, domain: str, ip: str):
         siteid = self.search_siteid(domain)
         recordid = self.search_recordid(f"{sub_domain}.{domain}", siteid)
         payload = {
@@ -55,7 +55,7 @@ class aliesa(alicloud_common):
         }
         return self.request("POST", "UpdateRecord", payload)
 
-    def update_port(self, domain: str, sub_domain: str, port: int):
+    def update_port(self, sub_domain: str, domain: str, port: int):
         siteid = self.search_siteid(domain)
         configid = self.search_configid(sub_domain, siteid)
         payload = {
