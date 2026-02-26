@@ -94,9 +94,10 @@ def _extract_other_addr(payload):
             "无法从STUN中解析OTHER_ADDRESS %s" % payload
         ) from e
 
-def resolve_stun_ip(host: str):
+def resolve_stun_address(host, port):
+    # type: (str, int) -> list[socket._Address]
     try:
-        return [str(x.address) for x in resolver.resolve(host, "A")]
+        return [(str(x.address), port) for x in resolver.resolve(host, "A")]
     except (resolver.dns.exception.DNSException, OSError):
         error("stun服务器地址解析失败\n%s" % traceback.format_exc())
         return []
@@ -284,12 +285,12 @@ def _loop_connect(local, remote, timeout = 1):
 
 def tcp_nat_type_test(local):
     # type: (socket._Address) -> tuple[bool, int]
-    stun_address = resolve_stun_ip(TCP_STUN_HOST)
+    stun_address = resolve_stun_address(TCP_STUN_HOST, TCP_STUN_PORT)
     if len(stun_address) < 2:
         error("UnsupportedServer")
         return False, -1
     try:
-        source_addr, _, mapped_addr, _ = tcp_single_test((stun_address[0], TCP_STUN_PORT), ("0.0.0.0", 0) if local is None else local)
+        source_addr, _, mapped_addr, _ = tcp_single_test(stun_address[0], ("0.0.0.0", 0) if local is None else local)
     except ValueError as e:
         error(e)
         debug(traceback.format_exc())
@@ -297,13 +298,13 @@ def tcp_nat_type_test(local):
     if source_addr == mapped_addr: # 内外地址一样，直接是公网IP
         info("OPEN INTERNET")
         return True, 0
-    _, _, mapped_addr2, _ = tcp_single_test((stun_address[1], TCP_STUN_PORT), source_addr) # 使用同一端口连不同IP
+    _, _, mapped_addr2, _ = tcp_single_test(stun_address[1], source_addr) # 使用同一端口连不同IP
     if mapped_addr == mapped_addr2: # 返回地址一样是锥形
         info("Endpoint-Independent Mapping")
         if _loop_connect_test(source_addr, mapped_addr): # 回环测试，能连进来是全锥
             if mapped_addr[1] == source_addr[1]: # 内外端口一样，可能是有公网IP（云服务器环境）
                 info("Endpoint-Independent Filtering")
-                test_arr = [tcp_single_test((stun_address[0], TCP_STUN_PORT), (source_addr[0], 0)) for _ in range(3)] # 随机检测3个端口
+                test_arr = [tcp_single_test(stun_address[0], (source_addr[0], 0)) for _ in range(3)] # 随机检测3个端口
                 if len(set(x[0][1] for x in test_arr)) == 3 and all(x[0][1] == x[2][1] for x in test_arr): # 如果3个端口内外都相同就认为是有公网IP
                     info("OPEN INTERNET")
                     return True, 0
@@ -330,12 +331,12 @@ def tcp_nat_type_test(local):
 
 def udp_nat_type_test(local):
     # type: (socket._Address) -> tuple[bool, int]
-    stun_address = resolve_stun_ip(UDP_STUN_HOST)
+    stun_address = resolve_stun_address(UDP_STUN_HOST, UDP_STUN_PORT)
     if len(stun_address) < 2:
         error("UnsupportedServer")
         return False, -1
     try:
-        source_addr, _, mapped_addr, _ = udp_single_test((stun_address[0], UDP_STUN_PORT), ("0.0.0.0", 0) if local is None else local)
+        source_addr, _, mapped_addr, _ = udp_single_test(stun_address[0], ("0.0.0.0", 0) if local is None else local)
     except ValueError as e:
         error(e)
         debug(traceback.format_exc())
@@ -343,13 +344,13 @@ def udp_nat_type_test(local):
     if source_addr == mapped_addr: # 内外地址一样，直接是公网IP
         info("OPEN INTERNET")
         return True, 0
-    _, _, mapped_addr2, _ = udp_single_test((stun_address[1], UDP_STUN_PORT), source_addr) # 使用同一端口连不同IP
+    _, _, mapped_addr2, _ = udp_single_test(stun_address[1], source_addr) # 使用同一端口连不同IP
     if mapped_addr == mapped_addr2: # 返回地址一样是锥形
         info("Endpoint-Independent Mapping")
         try:
-            udp_single_test((stun_address[0], UDP_STUN_PORT), source_addr, change_ip=True, change_port=True)
+            udp_single_test(stun_address[0], source_addr, change_ip=True, change_port=True)
             info("Endpoint-Independent Filtering")# 换了IP能连进来是全锥
-            test_arr = [udp_single_test((stun_address[0], UDP_STUN_PORT), (source_addr[0], 0)) for _ in range(3)] # 随机检测3个端口
+            test_arr = [udp_single_test(stun_address[0], (source_addr[0], 0)) for _ in range(3)] # 随机检测3个端口
             if len(set(x[0][1] for x in test_arr)) == 3 and all(x[0][1] == x[2][1] for x in test_arr): # 如果3个端口内外都相同就认为是有公网IP
                 info("OPEN INTERNET")
                 return True, 0
@@ -364,7 +365,7 @@ def udp_nat_type_test(local):
             debug(traceback.format_exc())
             return False, -1
         try:
-            udp_single_test((stun_address[0], UDP_STUN_PORT), source_addr, change_port=True) # 换了端口能连进来的是IP限制锥
+            udp_single_test(stun_address[0], source_addr, change_port=True) # 换了端口能连进来的是IP限制锥
             info("Address-Dependent Filtering")
             info("RESTRICTED CONE")
             return False, 2
