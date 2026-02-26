@@ -19,7 +19,7 @@ class dynv6(dns_base):
         }
         debug("method=%s, action=%s, params=%s, headers=%s", method, action, params, headers)
         try:
-            response = requests.request(method, "https://dynv6.com/api/v2" + action, json=params, headers=headers)
+            response = requests.request(method, "https://dynv6.com/api/v2" + action, json=params, headers=headers, timeout=15.0)
             r = response.content
             if response.status_code != 200:
                 raise ValueError(
@@ -31,6 +31,10 @@ class dynv6(dns_base):
                 return j
         except ValueError:
             raise
+        except requests.Timeout:
+            raise ValueError(
+                "%s 请求超时" % action
+            ) from e
         except Exception as e:
             raise ValueError(
                 "%s 请求失败" % action

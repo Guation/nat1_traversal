@@ -36,7 +36,7 @@ class tencentcloud_common(dns_base):
         headers["User-Agent"] = self.USER_AGENT
         debug("action=%s, params=%s, headers=%s", action, params, headers)
         try:
-            response = requests.request("POST", f"https://{headers['host']}/", headers=headers, data=params_string)
+            response = requests.request("POST", f"https://{headers['host']}/", headers=headers, data=params_string, timeout=15.0)
             r = response.content
             if response.status_code != 200:
                 raise ValueError(
@@ -53,6 +53,10 @@ class tencentcloud_common(dns_base):
                     return j
         except ValueError:
             raise
+        except requests.Timeout:
+            raise ValueError(
+                "%s 请求超时" % action
+            ) from e
         except Exception as e:
             raise ValueError(
                 "%s 请求失败" % action

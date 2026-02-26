@@ -5,7 +5,7 @@
 
 __author__ = "Guation"
 
-import os, argparse, sys, json, traceback, socket, time, threading, multiprocessing, importlib
+import os, argparse, sys, json, traceback, socket, time, threading, multiprocessing, importlib, signal
 from logging import debug, info, warning, error, DEBUG, INFO, basicConfig
 from nat1_traversal.util.stun import nat_type_test, get_self_ip_port, addr_available, TYPE_TCP, TYPE_UDP
 from nat1_traversal.util.tcp_port_forwarder import start_tcp_port_forward
@@ -16,7 +16,6 @@ from nat1_traversal.util.version import VERSION
 from nat1_traversal.dns.dns_base import dns_base
 
 def register_exit():
-    import signal
     force_exit = False
     def stop(signum, frame):
         nonlocal force_exit
@@ -33,12 +32,22 @@ def register_exit():
 def init_logger(debug: bool) -> None:
     if debug:
         basicConfig(
-            level=DEBUG,
+            level=DEBUG, force=True,
             format='[%(levelname)8s] %(asctime)s <%(module)s.%(funcName)s>:%(lineno)d\n[%(levelname)8s] %(message)s')
     else:
         basicConfig(
-            level=INFO,
+            level=INFO, force=True,
             format='[%(levelname)8s] %(message)s')
+
+def register_logger_level_change():
+    def change_on(signum, frame):
+        init_logger(True)
+        info("DEBUG on")
+    def change_off(signum, frame):
+        init_logger(False)
+        info("DEBUG off")
+    signal.signal(signal.SIGUSR1, change_on)
+    signal.signal(signal.SIGUSR2, change_off)
 
 class logger_filter:
     def __init__(self, max_tick: int):
@@ -280,6 +289,7 @@ def main():
         debug(traceback.format_exc())
         sys.exit(1)
     register_exit()
+    register_logger_level_change()
     def update_dns(ip: str, port: int):
         nonlocal dns, config, srv_prefix
         info("开始更新DDNS记录")
