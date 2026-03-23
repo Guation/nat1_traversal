@@ -3,7 +3,7 @@
 
 __author__ = "Guation"
 
-from setuptools import setup, find_packages
+from setuptools import setup
 import pathlib
 
 VERSION = None
@@ -21,10 +21,7 @@ setup(
         ]
     },
     include_package_data=True,
-    install_requires=[
-        "requests",
-        "dnspython",
-    ],
+    install_requires=[x.strip() for x in pathlib.Path(__file__).parent.joinpath("requirements.txt").read_text().splitlines()],
     project_urls={
         "url": "https://github.com/Guation/nat1_traversal",
     }

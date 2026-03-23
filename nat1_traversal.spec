@@ -1,12 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+__author__ = "Guation"
+
+from PyInstaller.utils.hooks import collect_submodules
 
 a = Analysis(
     ['nat1_traversal\\nat1_traversal.py'],
     pathex=[],
     binaries=[],
     datas=[('nat1_traversal', 'nat1_traversal')],
-    hiddenimports=['requests', 'dnspython'],
+    hiddenimports=collect_submodules('nat1_traversal.dns'),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
