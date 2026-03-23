@@ -25,13 +25,13 @@ jobs:
             artifact-name: "NAT1_Traversal"
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: 'recursive'
         fetch-depth: 1
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -52,7 +52,7 @@ jobs:
         mv .\dist\nat1_traversal.exe .
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ matrix.artifact-name }}
         path: |
