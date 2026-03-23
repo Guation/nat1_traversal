@@ -21,6 +21,7 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
         orig_bind = (orig_bind_type)dlsym(RTLD_NEXT, "bind");
         if (!orig_bind) {
             syslog(LOG_ERR, "Failed to find original bind function");
+            perror("Failed to find original bind function");
             return -1;
         }
     }
@@ -31,7 +32,7 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
         uint16_t port = ntohs(addr_in->sin_port);
         inet_ntop(AF_INET, &(addr_in->sin_addr), ip_str, INET_ADDRSTRLEN);
         
-        syslog(LOG_INFO, "Hooked bind: PID=%d, FD=%d, IP=%s, Port=%d", 
+        syslog(LOG_DEBUG, "Hooked bind: PID=%d, FD=%d, IP=%s, Port=%d", 
                getpid(), sockfd, ip_str, port);
         
         printf("Hooked bind: PID=%d, FD=%d, IP=%s, Port=%d\n", 
@@ -45,7 +46,7 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
         uint16_t port = ntohs(addr_in6->sin6_port);
         inet_ntop(AF_INET6, &(addr_in6->sin6_addr), ip_str, INET6_ADDRSTRLEN);
         
-        syslog(LOG_INFO, "Hooked bind: PID=%d, FD=%d, IP=%s, Port=%d", 
+        syslog(LOG_DEBUG, "Hooked bind: PID=%d, FD=%d, IP=%s, Port=%d", 
                getpid(), sockfd, ip_str, port);
         
         printf("Hooked bind: PID=%d, FD=%d, IP=%s, Port=%d\n", 
@@ -54,27 +55,39 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
             set_opt = true;
         }
     } else {
-        syslog(LOG_INFO, "Hooked bind: PID=%d, FD=%d, Family=%d (unsupported)", 
+        syslog(LOG_DEBUG, "Hooked bind: PID=%d, FD=%d, Family=%d (unsupported)", 
                getpid(), sockfd, addr->sa_family);
         
         printf("Hooked bind: PID=%d, FD=%d, Family=%d (unsupported)\n", 
                getpid(), sockfd, addr->sa_family);
     }
     if (set_opt) {
-        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
-            perror("setsockopt failed");
+        int type;
+        socklen_t len = sizeof(type);
+        if (getsockopt(sockfd, SOL_SOCKET, SO_TYPE, &type, &len)) {
+            perror("getsockopt SO_TYPE failed");
             return -1;
         }
+        if (type == SOCK_STREAM && setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
+            perror("setsockopt SO_REUSEADDR failed");
+            return -1;
+        }
+        #ifdef SO_REUSEPORT_LB
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(opt))) {
+            perror("setsockopt SO_REUSEPORT_LB failed");
+            return -1;
+        }
+        #else
         if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt))) {
-            perror("setsockopt failed");
+            perror("setsockopt SO_REUSEPORT failed");
             return -1;
-        } else {
-            syslog(LOG_INFO, "Hooked bind: PID=%d, FD=%d, setsockopt SO_REUSEPORT", 
-                getpid(), sockfd);
-         
-            printf("Hooked bind: PID=%d, FD=%d, setsockopt SO_REUSEPORT\n", 
-                getpid(), sockfd);
         }
+        #endif
+        syslog(LOG_DEBUG, "Hooked bind: PID=%d, FD=%d, setsockopt SO_REUSEPORT", 
+            getpid(), sockfd);
+        
+        printf("Hooked bind: PID=%d, FD=%d, setsockopt SO_REUSEPORT\n", 
+            getpid(), sockfd);
     }
     return orig_bind(sockfd, addr, addrlen);
 }

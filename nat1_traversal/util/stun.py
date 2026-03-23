@@ -113,7 +113,9 @@ def new_tcp_socket_advanced(*, reuseport = False, family = socket.AF_INET):
     # type: (None, bool, int) -> socket.socket
     sock = socket.socket(family, socket.SOCK_STREAM, socket.IPPROTO_TCP)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    if reuseport and hasattr(socket, "SO_REUSEPORT"):
+    if reuseport and hasattr(socket, "SO_REUSEPORT_LB"):
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT_LB, 1)
+    elif reuseport and hasattr(socket, "SO_REUSEPORT"):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     return sock
@@ -126,7 +128,9 @@ def new_udp_socket():
 def new_udp_socket_advanced(*, reuseport = False, family = socket.AF_INET):
     # type: (None, bool, int) -> socket.socket
     sock = socket.socket(family, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    if reuseport and hasattr(socket, "SO_REUSEPORT"):
+    if reuseport and hasattr(socket, "SO_REUSEPORT_LB"):
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT_LB, 1)
+    elif reuseport and hasattr(socket, "SO_REUSEPORT"):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     return sock
 
