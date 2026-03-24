@@ -11,6 +11,12 @@
 #include <time.h>
 #include <stdbool.h>
 
+#if 0
+    #define SYSLOG(pri, fmt, ...) syslog(pri, fmt, ##__VA_ARGS__)
+#else
+    #define SYSLOG(pri, fmt, ...)
+#endif
+
 typedef int (*orig_bind_type)(int, const struct sockaddr *, socklen_t);
 
 int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
@@ -20,7 +26,7 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
     if (!orig_bind) {
         orig_bind = (orig_bind_type)dlsym(RTLD_NEXT, "bind");
         if (!orig_bind) {
-            syslog(LOG_ERR, "Failed to find original bind function");
+            SYSLOG(LOG_ERR, "Failed to find original bind function");
             perror("Failed to find original bind function");
             return -1;
         }
@@ -32,7 +38,7 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
         uint16_t port = ntohs(addr_in->sin_port);
         inet_ntop(AF_INET, &(addr_in->sin_addr), ip_str, INET_ADDRSTRLEN);
         
-        syslog(LOG_DEBUG, "Hooked bind: PID=%d, FD=%d, IP=%s, Port=%d", 
+        SYSLOG(LOG_DEBUG, "Hooked bind: PID=%d, FD=%d, IP=%s, Port=%d", 
                getpid(), sockfd, ip_str, port);
         
         printf("Hooked bind: PID=%d, FD=%d, IP=%s, Port=%d\n", 
@@ -46,7 +52,7 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
         uint16_t port = ntohs(addr_in6->sin6_port);
         inet_ntop(AF_INET6, &(addr_in6->sin6_addr), ip_str, INET6_ADDRSTRLEN);
         
-        syslog(LOG_DEBUG, "Hooked bind: PID=%d, FD=%d, IP=%s, Port=%d", 
+        SYSLOG(LOG_DEBUG, "Hooked bind: PID=%d, FD=%d, IP=%s, Port=%d", 
                getpid(), sockfd, ip_str, port);
         
         printf("Hooked bind: PID=%d, FD=%d, IP=%s, Port=%d\n", 
@@ -55,7 +61,7 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
             set_opt = true;
         }
     } else {
-        syslog(LOG_DEBUG, "Hooked bind: PID=%d, FD=%d, Family=%d (unsupported)", 
+        SYSLOG(LOG_DEBUG, "Hooked bind: PID=%d, FD=%d, Family=%d (unsupported)", 
                getpid(), sockfd, addr->sa_family);
         
         printf("Hooked bind: PID=%d, FD=%d, Family=%d (unsupported)\n", 
@@ -83,7 +89,7 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
             return -1;
         }
         #endif
-        syslog(LOG_DEBUG, "Hooked bind: PID=%d, FD=%d, setsockopt SO_REUSEPORT", 
+        SYSLOG(LOG_DEBUG, "Hooked bind: PID=%d, FD=%d, setsockopt SO_REUSEPORT", 
             getpid(), sockfd);
         
         printf("Hooked bind: PID=%d, FD=%d, setsockopt SO_REUSEPORT\n", 
