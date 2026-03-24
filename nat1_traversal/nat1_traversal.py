@@ -46,8 +46,9 @@ def register_logger_level_change():
     def change_off(signum, frame):
         init_logger(False)
         info("DEBUG off")
-    signal.signal(signal.SIGUSR1, change_on)
-    signal.signal(signal.SIGUSR2, change_off)
+    if hasattr(signal, "SIGUSR1") and hasattr(signal, "SIGUSR2"):
+        signal.signal(signal.SIGUSR1, change_on)
+        signal.signal(signal.SIGUSR2, change_off)
 
 class logger_filter:
     def __init__(self, max_tick: int):
