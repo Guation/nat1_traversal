@@ -328,7 +328,7 @@ def main():
                 error("映射地址不可用，开始重新映射，%s", msg)
                 time.sleep(1)
                 continue
-            threading.Thread(target=update_dns, args=mapped_addr).start()
+            threading.Thread(target=update_dns, args=mapped_addr, daemon=True).start()
             remote_online_filter = logger_filter(1800)
             while True:
                 time.sleep(1)
@@ -350,7 +350,7 @@ def main():
                 debug(traceback.format_exc())
                 time.sleep(10)
                 continue
-            threading.Thread(target=update_dns, args=mapped_addr).start()
+            threading.Thread(target=update_dns, args=mapped_addr, daemon=True).start()
             forward_process = multiprocessing.Process(target=forward_main, args=(local_addr, remote_addr, mapped_addr, args.D, socket_type), daemon=True)
             forward_process.start()
             forward_process.join()

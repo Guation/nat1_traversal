@@ -31,6 +31,8 @@ ATTRIB_OTHER_ADDRESS       = 0x802C
 TYPE_TCP = 1
 TYPE_UDP = 2
 
+FORCE_CLOSE = os.name == "nt"
+
 def _random_tran_id():
     # type: () -> bytes
     # Compatible with rfc3489, rfc5389 and rfc8489
@@ -112,14 +114,7 @@ else:
     def socket_set_reuseport(sock: socket.socket):
         pass
 
-def new_tcp_socket():
-    # type: () -> socket.socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-    return sock
-
-def new_tcp_socket_advanced(*, reuseport = False, family = socket.AF_INET):
+def new_tcp_socket(*, reuseport = False, family = socket.AF_INET):
     # type: (None, bool, int) -> socket.socket
     sock = socket.socket(family, socket.SOCK_STREAM, socket.IPPROTO_TCP)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -128,12 +123,7 @@ def new_tcp_socket_advanced(*, reuseport = False, family = socket.AF_INET):
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     return sock
 
-def new_udp_socket():
-    # type: () -> socket.socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    return sock
-
-def new_udp_socket_advanced(*, reuseport = False, family = socket.AF_INET):
+def new_udp_socket(*, reuseport = False, family = socket.AF_INET):
     # type: (None, bool, int) -> socket.socket
     sock = socket.socket(family, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     if reuseport:
@@ -144,8 +134,10 @@ def tcp_single_test(stun, source, timeout = 3):
     # type: (socket._Address, socket._Address, int) -> tuple[socket._RetAddress, socket._RetAddress, socket._RetAddress, socket._RetAddress]
     # rfc5389 and rfc8489 only
     tran_id = _random_tran_id()
-    with new_tcp_socket_advanced(reuseport=True) as sock:
+    with new_tcp_socket(reuseport=True) as sock:
         sock.settimeout(timeout)
+        if FORCE_CLOSE:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
         try:
             sock.bind(source)
         except OSError as e:
@@ -183,7 +175,7 @@ def udp_single_test(stun, source, change_ip = False, change_port = False, timeou
     # type: (socket._Address, socket._Address, bool, bool, int, int) -> tuple[socket._RetAddress, socket._RetAddress, socket._RetAddress, socket._RetAddress]
     # rfc5389 and rfc8489 only
     tran_id = _random_tran_id()
-    with new_udp_socket_advanced(reuseport=True) as sock:
+    with new_udp_socket(reuseport=True) as sock:
         sock.settimeout(timeout)
         try:
             sock.bind(source)
@@ -245,7 +237,7 @@ def get_self_ip_port(local, _type):
 
 def addr_available(local, _type):
     # type: (socket._Address, int) -> socket._RetAddress
-    with new_tcp_socket_advanced(reuseport=True) if _type is TYPE_TCP else new_udp_socket_advanced(reuseport=True) as sock:
+    with new_tcp_socket(reuseport=True) if _type is TYPE_TCP else new_udp_socket(reuseport=True) as sock:
         try:
             sock.bind(local)
         except OSError as e:

@@ -6,7 +6,7 @@
 import socket, struct, json, traceback, time, io, re
 import dns.resolver as resolver
 from logging import debug, info, warning, error
-from .stun import new_tcp_socket, new_udp_socket, new_tcp_socket_advanced, new_udp_socket_advanced
+from .stun import new_tcp_socket, new_udp_socket
 
 RAKNET_MAGIC = bytearray([0x00, 0xff, 0xff, 0x00, 0xfe, 0xfe, 0xfe, 0xfe, 0xfd, 0xfd, 0xfd, 0xfd, 0x12, 0x34, 0x56, 0x78])
 MOTD_INDEX = ["edition", "motd_1", "protocol_version", "version", "current_players", "max_players",
@@ -112,7 +112,7 @@ def mcje_query(address, port, family = socket.AF_INET):
 
     See https://minecraft.wiki/w/Java_Edition_protocol/Server_List_Ping#Current
     """
-    sock = new_tcp_socket_advanced(family = family)
+    sock = new_tcp_socket(family = family)
     sock.settimeout(5)
 
     try:
@@ -243,7 +243,7 @@ def mcbe_query(address, port, family = socket.AF_INET):
     """
 
     # Create socket with type DGRAM (for UDP)
-    sock = new_udp_socket_advanced(family = family)
+    sock = new_udp_socket(family = family)
     sock.settimeout(10)
 
     try:
