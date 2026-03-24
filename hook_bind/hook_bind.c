@@ -78,17 +78,25 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
             perror("setsockopt SO_REUSEADDR failed");
             return -1;
         }
-        #ifdef SO_REUSEPORT_LB
-        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(opt))) {
-            perror("setsockopt SO_REUSEPORT_LB failed");
-            return -1;
-        }
-        #else
+#ifdef __linux__
+    #ifdef SO_REUSEPORT
         if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt))) {
             perror("setsockopt SO_REUSEPORT failed");
             return -1;
         }
-        #endif
+    #else
+        #error "Unsupported system"
+    #endif
+#else
+    #ifdef SO_REUSEPORT_LB
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(opt))) {
+            perror("setsockopt SO_REUSEPORT_LB failed");
+            return -1;
+        }
+    #else
+        #error "Unsupported system"
+    #endif
+#endif
         SYSLOG(LOG_DEBUG, "Hooked bind: PID=%d, FD=%d, setsockopt SO_REUSEPORT", 
             getpid(), sockfd);
         

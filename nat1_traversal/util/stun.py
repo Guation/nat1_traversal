@@ -102,6 +102,16 @@ def resolve_stun_address(host, port):
         error("stun服务器地址解析失败\n%s" % traceback.format_exc())
         return []
 
+if hasattr(socket, "SO_REUSEPORT_LB"):
+    def socket_set_reuseport(sock: socket.socket):
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT_LB, 1)
+elif hasattr(socket, "SO_REUSEPORT"):
+    def socket_set_reuseport(sock: socket.socket):
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+else:
+    def socket_set_reuseport(sock: socket.socket):
+        pass
+
 def new_tcp_socket():
     # type: () -> socket.socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
@@ -113,10 +123,8 @@ def new_tcp_socket_advanced(*, reuseport = False, family = socket.AF_INET):
     # type: (None, bool, int) -> socket.socket
     sock = socket.socket(family, socket.SOCK_STREAM, socket.IPPROTO_TCP)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    if reuseport and hasattr(socket, "SO_REUSEPORT_LB"):
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT_LB, 1)
-    elif reuseport and hasattr(socket, "SO_REUSEPORT"):
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    if reuseport:
+        socket_set_reuseport(sock)
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     return sock
 
@@ -128,10 +136,8 @@ def new_udp_socket():
 def new_udp_socket_advanced(*, reuseport = False, family = socket.AF_INET):
     # type: (None, bool, int) -> socket.socket
     sock = socket.socket(family, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    if reuseport and hasattr(socket, "SO_REUSEPORT_LB"):
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT_LB, 1)
-    elif reuseport and hasattr(socket, "SO_REUSEPORT"):
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    if reuseport:
+        socket_set_reuseport(sock)
     return sock
 
 def tcp_single_test(stun, source, timeout = 3):
