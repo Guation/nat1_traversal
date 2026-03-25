@@ -36,10 +36,10 @@ class alidns(alicloud_common):
         }
         recordid = self.search_recordid(sub_domain, domain)
         if recordid is None: # 新建
-            return self.request("AddDomainRecord", params)
+            return self.request("AddDomainRecord", payload)
         else: # 更新
             payload["RecordId"] = recordid
-            return self.request("UpdateDomainRecord", params)
+            return self.request("UpdateDomainRecord", payload)
 
     def update_record_simple(self, srv_prefix: str, sub_domain: str, domain: str, ip: str, port: int):
         self.update_record(sub_domain, domain, "A", ip)
