@@ -18,8 +18,8 @@ def main():
     try:
         with zipfile.ZipFile(sys.argv[1], 'r') as z:
             z.extractall(tmpdir)
-        shutil.rmtree(pathlib.Path(tmpdir).joinpath("bin"))
-        remove_pyd(tmpdir)
+        shutil.rmtree(pathlib.Path(tmpdir).joinpath("site-packages/bin"))
+        remove_pyd(pathlib.Path(tmpdir).joinpath("site-packages"))
         os.unlink(sys.argv[1])
         with zipfile.ZipFile(sys.argv[1], 'w', zipfile.ZIP_DEFLATED) as z:
             for root, _, files in os.walk(tmpdir):
