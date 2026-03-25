@@ -31,7 +31,7 @@ ATTRIB_OTHER_ADDRESS       = 0x802C
 TYPE_TCP = 1
 TYPE_UDP = 2
 
-FORCE_CLOSE = os.name == "nt"
+IS_WINDOWS = os.name == "nt"
 
 def _random_tran_id():
     # type: () -> bytes
@@ -136,7 +136,7 @@ def tcp_single_test(stun, source, timeout = 3):
     tran_id = _random_tran_id()
     with new_tcp_socket(reuseport=True) as sock:
         sock.settimeout(timeout)
-        if FORCE_CLOSE:
+        if IS_WINDOWS:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
         try:
             sock.bind(source)

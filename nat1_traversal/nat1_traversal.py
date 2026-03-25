@@ -7,7 +7,7 @@ __author__ = "Guation"
 
 import os, argparse, sys, json, traceback, socket, time, threading, multiprocessing, importlib, signal
 from logging import debug, info, warning, error, DEBUG, INFO, basicConfig
-from nat1_traversal.util.stun import nat_type_test, get_self_ip_port, addr_available, TYPE_TCP, TYPE_UDP
+from nat1_traversal.util.stun import nat_type_test, get_self_ip_port, addr_available, TYPE_TCP, TYPE_UDP, IS_WINDOWS
 from nat1_traversal.util.tcp_port_forwarder import start_tcp_port_forward
 from nat1_traversal.util.udp_port_forwarder import start_udp_port_forward
 from nat1_traversal.util.motd import mcje_query, srv_query, tcp_query, mcbe_query, udp_query
@@ -303,7 +303,7 @@ def main():
                 error("DDNS更新失败： %s", e)
                 time.sleep(3)
     if remote_addr is None:
-        if os.name == "nt":
+        if IS_WINDOWS:
             error("Windows平台不支持共端口模式")
             sys.exit(1)
         info("共端口模式")
