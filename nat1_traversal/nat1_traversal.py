@@ -198,22 +198,15 @@ def main():
     try:
         with open(args.C, "rb") as f:
             config_b1 = f.read()
-            try:
-                config_s = config_b1.decode()
-            except UnicodeDecodeError:
-                try:
-                    config_s = str(charset_normalizer.from_bytes(config_b1).best())
-                except UnicodeDecodeError:
-                    error("无法识别DDNS配置文件 %s 所使用的编码格式", os.path.abspath(args.C))
-                    sys.exit(1)
-            config.update(json.loads(config_s))
-            del config_s
+        config_d = charset_normalizer.from_bytes(config_b1).best()
+        debug("DDNS配置文件编码为 %s" % config_d.encoding)
+        config.update(json.loads(str(config_d)))
     except Exception:
         error("DDNS配置文件 %s 读取失败", os.path.abspath(args.C))
         debug(traceback.format_exc())
         sys.exit(1)
     try:
-        config_b2 = json.dumps(config, indent=4, ensure_ascii=False).encode()
+        config_b2 = json.dumps(config, indent=4, ensure_ascii=False).encode(config_d.encoding)
         if config_b1 != config_b2:
             with open(args.C, "wb") as f:
                 f.write(config_b2)
@@ -224,6 +217,7 @@ def main():
     finally:
         del config_b1
         del config_b2
+        del config_d
     try:
         dns = getattr(importlib.import_module("nat1_traversal.dns." + config["dns"]), config["dns"])(config["id"], config["token"]) # type: dns_base
         info("使用的DNS供应商为 %s", config["dns"])
