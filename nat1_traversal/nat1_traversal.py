@@ -5,7 +5,7 @@
 
 __author__ = "Guation"
 
-import os, argparse, sys, json, traceback, socket, time, threading, multiprocessing, importlib, signal
+import os, argparse, sys, json, traceback, socket, time, threading, multiprocessing, importlib, signal, charset_normalizer
 from logging import debug, info, warning, error, DEBUG, INFO, basicConfig
 from nat1_traversal.util.stun import nat_type_test, get_self_ip_port, addr_available, TYPE_TCP, TYPE_UDP, IS_WINDOWS
 from nat1_traversal.util.tcp_port_forwarder import start_tcp_port_forward
@@ -202,7 +202,7 @@ def main():
                 config_s = config_b1.decode()
             except UnicodeDecodeError:
                 try:
-                    config_s = config_b1.decode(json.detect_encoding(config_b1))
+                    config_s = str(charset_normalizer.from_bytes(config_b1).best())
                 except UnicodeDecodeError:
                     error("无法识别DDNS配置文件 %s 所使用的编码格式", os.path.abspath(args.C))
                     sys.exit(1)
