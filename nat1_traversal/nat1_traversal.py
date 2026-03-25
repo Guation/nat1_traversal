@@ -5,7 +5,7 @@
 
 __author__ = "Guation"
 
-import os, argparse, sys, json, traceback, socket, time, threading, multiprocessing, importlib, signal, charset_normalizer
+import os, argparse, sys, json, traceback, socket, time, threading, multiprocessing, signal, charset_normalizer
 from logging import debug, info, warning, error, DEBUG, INFO, basicConfig
 from nat1_traversal.util.stun import nat_type_test, get_self_ip_port, addr_available, TYPE_TCP, TYPE_UDP, IS_WINDOWS
 from nat1_traversal.util.tcp_port_forwarder import start_tcp_port_forward
@@ -13,7 +13,7 @@ from nat1_traversal.util.udp_port_forwarder import start_udp_port_forward
 from nat1_traversal.util.motd import mcje_query, srv_query, tcp_query, mcbe_query, udp_query
 from nat1_traversal.util.addr_tool import convert_addr, convert_mc_host
 from nat1_traversal.util.version import VERSION
-from nat1_traversal.dns.dns_base import dns_base
+import nat1_traversal.dns
 
 def register_exit():
     force_exit = False
@@ -219,7 +219,7 @@ def main():
         del config_b2
         del config_d
     try:
-        dns = getattr(importlib.import_module("nat1_traversal.dns." + config["dns"]), config["dns"])(config["id"], config["token"]) # type: dns_base
+        dns = getattr(nat1_traversal.dns, config["dns"])(config["id"], config["token"]) # type: nat1_traversal.dns.dns_base
         info("使用的DNS供应商为 %s", config["dns"])
     except Exception:
         error("不受支持的DNS供应商 %s", config["dns"])
