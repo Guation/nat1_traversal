@@ -43,4 +43,4 @@ class alidns(alicloud_common):
 
     def update_record_simple(self, srv_prefix: str, sub_domain: str, domain: str, ip: str, port: int):
         self.update_record(sub_domain, domain, "A", ip)
-        self.update_record(srv_prefix + sub_domain, domain, "SRV", f"{sub_domain},{domain}", port=port)
+        self.update_record(srv_prefix + sub_domain, domain, "SRV", f"{sub_domain}.{domain}", port=port)
