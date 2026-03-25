@@ -48,7 +48,8 @@ jobs:
     - name: Build project
       run: |
         pyinstaller nat1_traversal.spec
-        shiv -e nat1_traversal.nat1_traversal:main -o nat1_traversal.pyz --no-scripts . -- -r requirements.txt --no-binary :all:
+        shiv -e nat1_traversal.nat1_traversal:main -o nat1_traversal.pyz .
+        python strip_pyz.py nat1_traversal.pyz
         mv .\dist\nat1_traversal.exe .
 
     - name: Upload artifact
