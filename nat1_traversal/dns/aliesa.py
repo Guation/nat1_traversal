@@ -46,17 +46,15 @@ class aliesa(alicloud_common):
             "无法搜索到前缀%s" % sub_domain
         )
 
-    def update_ip(self, sub_domain: str, domain: str, ip: str):
-        siteid = self.search_siteid(domain)
-        recordid = self.search_recordid(f"{sub_domain}.{domain}", siteid)
+    def update_ip(self, sub_domain: str, siteid: int, ip: str):
+        recordid = self.search_recordid(sub_domain, siteid)
         payload = {
             "RecordId": recordid,
             "Data": '{"Value":"' + ip + '"}'
         }
         return self.request("POST", "UpdateRecord", payload)
 
-    def update_port(self, sub_domain: str, domain: str, port: int):
-        siteid = self.search_siteid(domain)
+    def update_port(self, sub_domain: str, siteid: int, port: int):
         configid = self.search_configid(sub_domain, siteid)
         payload = {
             "SiteId": siteid,
@@ -71,5 +69,6 @@ class aliesa(alicloud_common):
             raise ValueError(
                 "esa平台只支持type为web"
             )
-        self.update_ip(sub_domain, domain, ip)
-        self.update_port(sub_domain, domain, port)
+        siteid = self.search_siteid(domain)
+        self.update_ip(f"{sub_domain}.{domain}", siteid, ip)
+        self.update_port(sub_domain, siteid, port)

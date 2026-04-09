@@ -11,7 +11,7 @@ class alidns(alicloud_common):
     def request(self, action: str, params: dict = None):
         return self.alicloud_rpc_request("POST", "alidns.aliyuncs.com", action, "2015-01-09", params)
 
-    def search_recordid(self, sub_domain: str, domain: str) -> str:
+    def search_recordid(self, sub_domain: str, domain: str) -> tuple[str, str]:
         domainPunycode = self.domain2punycode(sub_domain)
         params = {
             "DomainName": domain,
@@ -19,7 +19,7 @@ class alidns(alicloud_common):
         }
         for i in self.request("DescribeDomainRecords", params)["DomainRecords"]["Record"]:
             if self.domain2punycode(i["RR"]) == domainPunycode:
-                return i["RecordId"]
+                return i["RecordId"], i["Value"]
         debug("无法搜索到前缀%s", sub_domain)
         return None
 
@@ -38,7 +38,9 @@ class alidns(alicloud_common):
         if recordid is None: # 新建
             return self.request("AddDomainRecord", payload)
         else: # 更新
-            payload["RecordId"] = recordid
+            if recordid[1] == payload["Value"]:
+                return {}
+            payload["RecordId"] = recordid[0]
             return self.request("UpdateDomainRecord", payload)
 
     def update_record_simple(self, srv_prefix: str, sub_domain: str, domain: str, ip: str, port: int):
