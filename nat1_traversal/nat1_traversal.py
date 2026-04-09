@@ -295,6 +295,7 @@ def main():
                 return
             except ValueError as e:
                 error("DDNS更新失败： %s", e)
+                debug(traceback.format_exc())
                 time.sleep(3)
     if remote_addr is None:
         if IS_WINDOWS:
