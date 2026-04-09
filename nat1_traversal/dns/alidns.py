@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
+# https://help.aliyun.com/zh/dns/api-alidns-2015-01-09-overview
+# https://api.aliyun.com/document/Alidns/2015-01-09/overview
+
 __author__ = "Guation"
 __all__ = ["alidns"]
 
@@ -11,7 +14,8 @@ class alidns(alicloud_common):
     def request(self, action: str, params: dict = None):
         return self.alicloud_rpc_request("POST", "alidns.aliyuncs.com", action, "2015-01-09", params)
 
-    def search_recordid(self, sub_domain: str, domain: str) -> tuple[str, str]:
+    def search_recordid(self, sub_domain: str, domain: str):
+        # type: (str, str) -> tuple[str, str]
         domainPunycode = self.domain2punycode(sub_domain)
         params = {
             "DomainName": domain,

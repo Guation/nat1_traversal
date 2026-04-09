@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
+# https://cloud.tencent.com/document/api/213/30654
+# https://www.tencentcloud.com/zh/document/api/1103/42455
+
 __author__ = "Guation"
 __all__ = ["tencentcloud_common"]
 
@@ -12,7 +15,7 @@ class tencentcloud_common(dns_base):
     def hmac_sha256(self, key: bytes, data: str) -> bytes:
         return hmac.new(key, data.encode("utf-8"), hashlib.sha256).digest()
 
-    def tencentcloud_request(self, endpoint: str, action: str, version: str, params: dict):
+    def tencentcloud_request(self, endpoint: str, action: str, version: str, params: dict) -> dict:
         timestamp = int(time.time())
         date = time.strftime('%Y-%m-%d', time.gmtime(timestamp))
         product = endpoint.split(".")[0]

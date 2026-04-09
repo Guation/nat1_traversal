@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
+# https://cloud.tencent.com/document/product/1427/56194
+# https://console.cloud.tencent.com/api/explorer?Product=dnspod&Version=2021-03-23
+
 __author__ = "Guation"
 __all__ = ["tencentcloud"]
 

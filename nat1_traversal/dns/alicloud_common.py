@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
+# https://help.aliyun.com/zh/sdk/product-overview/v3-request-structure-and-signature
+
 __author__ = "Guation"
 __all__ = ["alicloud_common"]
 
@@ -10,7 +12,7 @@ from urllib.parse import quote_plus, urlencode
 from logging import debug, info, warning, error
 
 class alicloud_common(dns_base):
-    def flattening_params(self, params, prefix = "", upper_params: dict = None):
+    def flattening_params(self, params, prefix = "", upper_params: dict = None) -> dict:
         if upper_params is None:
             upper_params = {}
         if params is None:
@@ -26,7 +28,7 @@ class alicloud_common(dns_base):
             upper_params[prefix] = params.decode("utf-8") if isinstance(params, bytes) else str(params)
         return upper_params
 
-    def alicloud_rpc_request(self, method: str, endpoint: str, action: str, version: str, params: dict):
+    def alicloud_rpc_request(self, method: str, endpoint: str, action: str, version: str, params: dict) -> dict:
         headers = {
             "host": endpoint,
             "x-acs-action": action,

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
+# https://cloud.tencent.com/document/product/1552/80731
+# https://console.cloud.tencent.com/api/explorer?Product=teo&Version=2022-09-01
+
 __author__ = "Guation"
 __all__ = ["edgeone"]
 

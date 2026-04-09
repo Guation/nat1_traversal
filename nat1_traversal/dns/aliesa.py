@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
+# https://api.aliyun.com/document/ESA/2024-09-10/overview
+
 __author__ = "Guation"
 __all__ = ["aliesa"]
 
