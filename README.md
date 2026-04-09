@@ -184,6 +184,7 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 
 - [webhook](./nat1_traversal/dns/webhook.py) 使用id作为POST请求的URL，URL需以`http://`或`https://`开头，当token不为`null`时请求头将携带`Bearer Authentication`参数。
   - 请求体：`{"srv_prefix": "{srv_prefix}, ""sub_domain": "{sub_domain}", "domain": "{domain}", "ip": "xx.xx.xx.xx", "port": yyyy}`
+  - 返回值：服务器应当使用`200`作为响应码，任何其他响应码都被认为是失败；服务器应当使用json字符串作为返回值，空json`{}`亦可
 
 - [tencentcloud](https://console.cloud.tencent.com/cam) 新建用户->快速创建->访问方式:编程访问,用户权限:`QcloudDNSPodFullAccess`，使用`SecretId`作为`id`，使用`SecretKey`作为`token`。
 
@@ -233,6 +234,8 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 > 此功能原本是用于均衡负载，但此时可能会造成多名玩家登录到不同服务器而无法观察到对方的混乱。
 > 请您在运行MC服务器之前检查目标端口是否已被使用，避免多个MC服务器共用同一端口的行为。
 > 如果出现了多个MC服务器共用同一端口的情况，本项目可能会误认为服务器MOTD在不断更新而不停在日志中输出MOTD。
+
+*其实OpenBSD和MacOS也有对应的均衡负载参数叫`SO_REUSEPORT_LB`，但是在这两个系统中`LD_PRELOAD`存在更多限制，所以目前对这两个系统的相关特性仅提供有限支持*
 
 #### Windows/MacOS/Linux 转发模式
 在不可使用Linux 3.9+的`SO_REUSEPORT`时，我们可以让NAT1 Traversal作为中间代理转发我们的MC服务器流量。
