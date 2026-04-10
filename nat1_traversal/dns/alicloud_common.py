@@ -8,7 +8,7 @@ __all__ = ["alicloud_common"]
 
 import time, uuid, hashlib, hmac, requests, json
 from nat1_traversal.dns.dns_base import dns_base
-from urllib.parse import quote_plus, urlencode
+from urllib.parse import quote, urlencode
 from logging import debug, info, warning, error
 
 class alicloud_common(dns_base):
@@ -38,10 +38,7 @@ class alicloud_common(dns_base):
             "x-acs-content-sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         }
         headers = dict(sorted(headers.items()))
-        canonical_query_string = "&".join(
-            f"{quote_plus(k)}={quote_plus(str(v))}"
-            for k, v in sorted(self.flattening_params(params).items())
-        )
+        canonical_query_string = urlencode(sorted(self.flattening_params(params).items()), doseq=True, safe="", encoding="utf-8", quote_via=quote)
         canonical_headers = "\n".join(f"{k}:{v}" for k, v in headers.items()) + "\n"
         signed_headers = ";".join(headers.keys())
         canonical_request = "\n".join([method, "/", canonical_query_string, canonical_headers, signed_headers, headers["x-acs-content-sha256"]])
@@ -51,7 +48,7 @@ class alicloud_common(dns_base):
         headers["User-Agent"] = self.USER_AGENT
         debug("action=%s, params=%s, headers=%s", action, params, headers)
         try:
-            response = requests.request(method, f"https://{headers['host']}/?{urlencode(params, doseq=True, safe='*')}", headers=headers, timeout=15.0)
+            response = requests.request(method, f"https://{headers['host']}/?{canonical_query_string}", headers=headers, timeout=15.0)
             r = response.content
             if response.status_code != 200:
                 raise ValueError(
