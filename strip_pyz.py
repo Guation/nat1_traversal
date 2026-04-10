@@ -3,7 +3,7 @@
 
 __author__ = "Guation"
 
-import os, shutil, tempfile, zipfile, sys, pathlib
+import os, shutil, tempfile, zipfile, sys, pathlib, zipapp
 
 def remove_pyd(dir: str):
     for i in os.scandir(dir):
@@ -16,17 +16,16 @@ def remove_pyd(dir: str):
 def main():
     tmpdir = tempfile.mkdtemp()
     try:
-        with zipfile.ZipFile(sys.argv[1], 'r') as z:
+        appfile = sys.argv[1]
+        with open(appfile, 'rb') as f:
+            assert f.read(2) == b"#!"
+            shebang = f.readline().strip()
+        with zipfile.ZipFile(appfile, 'r') as z:
             z.extractall(tmpdir)
         shutil.rmtree(pathlib.Path(tmpdir).joinpath("site-packages/bin"))
         remove_pyd(pathlib.Path(tmpdir).joinpath("site-packages"))
-        os.unlink(sys.argv[1])
-        with zipfile.ZipFile(sys.argv[1], 'w', zipfile.ZIP_DEFLATED) as z:
-            for root, _, files in os.walk(tmpdir):
-                for f in files:
-                    full_path = os.path.join(root, f)
-                    rel_path = os.path.relpath(full_path, tmpdir)
-                    z.write(full_path, rel_path)
+        os.unlink(appfile)
+        zipapp.create_archive(tmpdir, appfile, interpreter=shebang, compressed=True)
     finally:
         shutil.rmtree(tmpdir)
 
