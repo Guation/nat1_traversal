@@ -34,7 +34,7 @@ class tencentcloud_common(dns_base):
         hashed_canonical_request = hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()
         secretSigning = self.hmac_sha256(self.hmac_sha256(self.hmac_sha256(b"TC3" + self.token.encode("utf-8"), date), product), "tc3_request")
         credentialScope = f"{date}/{product}/tc3_request"
-        signature = self.hmac_sha256(secretSigning, f"TC3-HMAC-SHA256\n{timestamp}\n{credentialScope}\n{hashed_canonical_request}").hex().lower()
+        signature = self.hmac_sha256(secretSigning, f"TC3-HMAC-SHA256\n{timestamp}\n{credentialScope}\n{hashed_canonical_request}").hex()
         headers["Authorization"] = f"TC3-HMAC-SHA256 Credential={self.id}/{credentialScope}, SignedHeaders={signed_headers}, Signature={signature}"
         headers["User-Agent"] = self.USER_AGENT
         debug("action=%s, params=%s, headers=%s", action, params, headers)

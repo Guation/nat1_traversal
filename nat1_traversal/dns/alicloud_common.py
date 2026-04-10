@@ -43,7 +43,7 @@ class alicloud_common(dns_base):
         signed_headers = ";".join(headers.keys())
         canonical_request = "\n".join([method, "/", canonical_query_string, canonical_headers, signed_headers, headers["x-acs-content-sha256"]])
         hashed_canonical_request = hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()
-        signature = hmac.new(self.token.encode("utf-8"), f"ACS3-HMAC-SHA256\n{hashed_canonical_request}".encode("utf-8"), hashlib.sha256).digest().hex().lower()
+        signature = hmac.new(self.token.encode("utf-8"), f"ACS3-HMAC-SHA256\n{hashed_canonical_request}".encode("utf-8"), hashlib.sha256).hexdigest()
         headers["Authorization"] = f"ACS3-HMAC-SHA256 Credential={self.id},SignedHeaders={signed_headers},Signature={signature}"
         headers["User-Agent"] = self.USER_AGENT
         debug("action=%s, params=%s, headers=%s", action, params, headers)
