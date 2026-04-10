@@ -17,8 +17,8 @@ def main():
     tmpdir = tempfile.mkdtemp()
     try:
         appfile = sys.argv[1]
-        with open(appfile, 'rb') as f:
-            assert f.read(2) == b"#!"
+        with open(appfile, 'r') as f:
+            assert f.read(2) == "#!"
             shebang = f.readline().strip()
         with zipfile.ZipFile(appfile, 'r') as z:
             z.extractall(tmpdir)
