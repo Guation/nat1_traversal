@@ -17,9 +17,9 @@ def main():
     tmpdir = tempfile.mkdtemp()
     try:
         appfile = sys.argv[1]
-        with open(appfile, 'r') as f:
-            assert f.read(2) == "#!"
-            shebang = f.readline().strip()
+        with open(appfile, 'rb') as f:
+            assert f.read(2) == b"#!"
+            shebang = f.readline().strip().decode()
         with zipfile.ZipFile(appfile, 'r') as z:
             z.extractall(tmpdir)
         shutil.rmtree(pathlib.Path(tmpdir).joinpath("site-packages/bin"))
