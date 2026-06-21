@@ -39,7 +39,7 @@ ISP最常使用的NAT方案为NAPT(Network Address Port Translation)，而在进
 |使用域名连接到服务器|✅|✅|✅|
 |使用IP连接到服务器|⚠️ISP会定期更新IP 无法长期使用同一IP|✅|❓取决于供应商|
 |控制台读取玩家IP|⚠️仅限Linux开服|✅|❌全为中转IP|
-|非控制台读取玩家IP|⚠️转发日志记录|⚠️已从控制台读取|❓取决于供应商|
+|非控制台读取玩家IP|⚠️转发日志记录 或使用PROXY Protocol|⚠️已从控制台读取|❓取决于供应商|
 |配置难度|中等|简单|简单|
 |自身网络限制|FULL CONE|无|无|
 |费用|免费|昂贵|中等|
@@ -175,6 +175,12 @@ MacOS/Linux使用`python3 NAT1_Traversal.pyz -t -l :25565`
 - local: 本地监听地址，与命令行指令`--local`一致，优先级低于`--local`
 
 - remote: 转发目的地址，与命令行指令`--remote`一致，优先级低于`--remote`
+
+- proxy_protocol: 设置PROXY Protocol 版本，用于在转发模式下向后端服务器传递客户端真实IP
+  - null: 不启用（默认）
+  - v1: 使用 PROXY Protocol v1
+  - v2: 使用 PROXY Protocol v2
+  - 后端服务器必须支持PROXY Protocol才能正确解析，否则可能导致连接异常
 
 #### id和token的获取方法
 

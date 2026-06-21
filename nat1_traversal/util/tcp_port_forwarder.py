@@ -7,6 +7,13 @@ import asyncio, traceback, os, sys, socket
 from logging import debug, info, warning, error, exception
 from .stun import new_tcp_socket
 
+_proxy_protocol_version = None
+
+def set_proxy_protocol_version(version):
+    """Set the proxy protocol version for this forwarder process."""
+    global _proxy_protocol_version
+    _proxy_protocol_version = version
+
 def stop():
     sys.stderr.flush()
     sys.stdout.flush()
@@ -36,6 +43,13 @@ async def handle_client(local_reader: asyncio.StreamReader, local_writer: asynci
         local_address = remote_writer.get_extra_info('sockname')
         info(f"客户端 {client_address[0]}:{client_address[1]} 已连接，绑定到本地地址 {local_address[0]}:{local_address[1]}")
 
+        if _proxy_protocol_version:
+            pp_header = _build_proxy_protocol_header(client_address, (remote_host, remote_port))
+            if pp_header:
+                remote_writer.write(pp_header)
+                await remote_writer.drain()
+                info(f"已发送 PROXY Protocol {_proxy_protocol_version} 头，客户端真实地址 {client_address[0]}:{client_address[1]}")
+
         local_to_remote = asyncio.create_task(forward(local_reader, remote_writer))
         remote_to_local = asyncio.create_task(forward(remote_reader, local_writer))
 
@@ -46,6 +60,20 @@ async def handle_client(local_reader: asyncio.StreamReader, local_writer: asynci
         debug(traceback.format_exc())
     finally:
         local_writer.close()
+
+def _build_proxy_protocol_header(src_addr, dst_addr):
+    """Build proxy protocol header based on configured version."""
+    try:
+        if _proxy_protocol_version == "v1":
+            from .proxy_protocol import build_pp_v1_header
+            return build_pp_v1_header(src_addr, dst_addr)
+        elif _proxy_protocol_version == "v2":
+            from .proxy_protocol import build_pp_v2_header
+            return build_pp_v2_header(src_addr, dst_addr)
+    except Exception:
+        error("构建 PROXY Protocol 头失败")
+        debug(traceback.format_exc())
+    return None
 
 async def handle_client_pong(local_reader: asyncio.StreamReader, local_writer: asyncio.StreamWriter, remote_host: str, remote_port: int):
     global g_handle_client
@@ -97,12 +125,14 @@ async def port_forward(local_host: str, local_port: int, remote_host: str, remot
     )
     asyncio.create_task(client_ping(call_host, call_port))
     async with server:
-        info(f"开启从 {local_host}:{local_port}({call_host}:{call_port}) 到 {remote_host}:{remote_port} 的端口转发")
+        pp_info = f"（PROXY Protocol {_proxy_protocol_version}）" if _proxy_protocol_version else ""
+        info(f"开启从 {local_host}:{local_port}({call_host}:{call_port}) 到 {remote_host}:{remote_port} 的端口转发{pp_info}")
         await server.serve_forever()
 
-def start_tcp_port_forward(local, remote, call):
-    # type: (socket._Address, socket._Address, socket._Address) -> None
+def start_tcp_port_forward(local, remote, call, proxy_protocol_version=None):
+    # type: (socket._Address, socket._Address, socket._Address, str | None) -> None
+    set_proxy_protocol_version(proxy_protocol_version)
     try:
         asyncio.run(port_forward(*local, *remote, *call))
     except (KeyboardInterrupt, SystemExit):
-        return # 捕获到之后正常退出 避免栈被multiprocessing捕捉
+        return
