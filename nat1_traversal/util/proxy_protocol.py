@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-__author__ = "Guation"
+__author__ = "Zxi2233"
 
 import struct, socket
 
