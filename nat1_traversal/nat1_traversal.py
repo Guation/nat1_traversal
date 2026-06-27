@@ -65,11 +65,11 @@ class logger_filter:
             self.buff_msg = msg
             return True
 
-def forward_main(local_addr, remote_addr, mapped_addr, debug, _type):
-    # type: (socket._Address, socket._Address, socket._Address, bool, int) -> None
+def forward_main(local_addr, remote_addr, mapped_addr, debug, _type, proxy_protocol_version=None):
+    # type: (socket._Address, socket._Address, socket._Address, bool, int, str | None) -> None
     init_logger(debug)
     if _type is TYPE_TCP:
-        start_tcp_port_forward(local_addr, remote_addr, mapped_addr)
+        start_tcp_port_forward(local_addr, remote_addr, mapped_addr, proxy_protocol_version)
     elif _type is TYPE_UDP:
         start_udp_port_forward(local_addr, remote_addr, mapped_addr)
 
@@ -118,6 +118,7 @@ def main():
             "\nsub_domain(String)"
             "\nlocal(String|null)"
             "\nremote(String|null)"
+            "\nproxy_protocol(String|null)              v1|v2|null，仅TCP模式下可用，转发真实客户端IP"
         , sys.argv[0])
         sys.exit(0)
     if args.V:
@@ -180,7 +181,8 @@ def main():
         "domain": "",
         "sub_domain": "",
         "local": None,
-        "remote": None
+        "remote": None,
+        "proxy_protocol": None
     }
     if not os.path.isfile(args.C):
         error("DDNS配置文件 %s 未找到" , os.path.abspath(args.C))
@@ -336,6 +338,17 @@ def main():
                         info("MOTD: %s", msg)
     else:
         info("转发模式")
+        # Proxy Protocol validation: only for TCP types
+        proxy_protocol_version = config.get("proxy_protocol", None)
+        if proxy_protocol_version is not None:
+            proxy_protocol_version = str(proxy_protocol_version).strip().lower()
+            if proxy_protocol_version not in ("v1", "v2"):
+                error("不支持的 proxy_protocol 版本: %s，可选值为 v1, v2 或 null", config["proxy_protocol"])
+                sys.exit(1)
+            if socket_type is not TYPE_TCP:
+                error("proxy_protocol 仅在 TCP 模式下可用 (mcje/web/tcp)，当前模式: %s", config["type"])
+                sys.exit(1)
+            info("已启用 PROXY Protocol %s，将转发真实客户端IP", proxy_protocol_version)
         multiprocessing.set_start_method("spawn")
         while True:
             try:
@@ -346,7 +359,7 @@ def main():
                 time.sleep(10)
                 continue
             threading.Thread(target=update_dns, args=mapped_addr, daemon=True).start()
-            forward_process = multiprocessing.Process(target=forward_main, args=(local_addr, remote_addr, mapped_addr, args.D, socket_type), daemon=True)
+            forward_process = multiprocessing.Process(target=forward_main, args=(local_addr, remote_addr, mapped_addr, args.D, socket_type, proxy_protocol_version), daemon=True)
             forward_process.start()
             forward_process.join()
             warning("转发发生异常，可能是映射地址离线，开始重新转发")
