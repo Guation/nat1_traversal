@@ -15,10 +15,10 @@ def build_pp_v1_header(src_addr: tuple, dst_addr: tuple) -> bytes:
     dst_ip, dst_port = dst_addr[0], dst_addr[1]
 
     try:
-        socket.inet_pton(socket.AF_INET6, src_ip)
-        proto = "TCP6"
-    except (socket.error, OSError):
+        socket.inet_pton(socket.AF_INET, src_ip)
         proto = "TCP4"
+    except (socket.error, OSError):
+        proto = "TCP6"
 
     header = f"PROXY {proto} {src_ip} {dst_ip} {src_port} {dst_port}\r\n"
     return header.encode("ascii")

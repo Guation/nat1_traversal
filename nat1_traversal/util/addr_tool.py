@@ -41,6 +41,11 @@ def convert_addr(addr, default_ip):
     tmp = addr.split(":")
     if len(tmp) == 2:
         return (_convert_ip(tmp[0], default_ip), _convert_port(tmp[1], 25565))
+    elif len(tmp) == 1:
+        if addr.find(".") == -1:
+            return (default_ip, _convert_port(addr, 25565))
+        else:
+            return (_convert_ip(addr, default_ip), 25565)
     else:
         raise ValueError(
             "地址格式错误，仅能有一个分隔符"

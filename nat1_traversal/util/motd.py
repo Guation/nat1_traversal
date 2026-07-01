@@ -4,11 +4,11 @@
 # https://github.com/FragLand/minestat/blob/master/Python/minestat/__init__.py
 
 import socket, struct, json, traceback, time, io, re
-import dns.resolver as resolver
 from logging import debug, info, warning, error
 from .stun import new_tcp_socket, new_udp_socket
+from dns_resolve import resolve
 
-RAKNET_MAGIC = bytearray([0x00, 0xff, 0xff, 0x00, 0xfe, 0xfe, 0xfe, 0xfe, 0xfd, 0xfd, 0xfd, 0xfd, 0x12, 0x34, 0x56, 0x78])
+RAKNET_MAGIC = b'\x00\xff\xff\x00\xfe\xfe\xfe\xfe\xfd\xfd\xfd\xfd\x12\x34\x56\x78'
 MOTD_INDEX = ["edition", "motd_1", "protocol_version", "version", "current_players", "max_players",
                   "server_uid", "motd_2", "gamemode", "gamemode_numeric", "port_ipv4", "port_ipv6"]
 STRIP_MOTD = re.compile(r'§[0-9a-v]')
@@ -93,13 +93,14 @@ def srv_query(srv_prefix, address, port, default_port):
         return (address, default_port)
     except OSError:
         pass
-    try:
-        srv_record = resolver.resolve(srv_prefix + address, "SRV")[0]
-        debug("SRV record %s", srv_record)
-        port = int(srv_record.port)
-        address = str(srv_record.target)[:-1]
-    except (resolver.dns.exception.DNSException, OSError):
-        debug("query srv record fail.\n%s", traceback.format_exc())
+    srv_record = resolve(srv_prefix + address, "SRV")
+    debug("SRV record %s", srv_record)
+    if srv_record:
+        sel_record = srv_record[0]["data"].split()
+        port = int(sel_record[2])
+        address = sel_record[3][:-1]
+    else:
+        debug("query srv record fail.")
         port = default_port
     return (address, port)
 

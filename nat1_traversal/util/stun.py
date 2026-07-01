@@ -8,8 +8,8 @@
 # https://cloud.tencent.com/developer/article/2419666
 
 import os, socket, struct, traceback
-import dns.resolver as resolver
 from logging import debug, info, warning, error
+from dns_resolve import resolve
 
 MTU             = 1500
 TCP_STUN_HOST   = "turn.cloud-rtc.com"
@@ -98,11 +98,7 @@ def _extract_other_addr(payload):
 
 def resolve_stun_address(host, port):
     # type: (str, int) -> list[socket._Address]
-    try:
-        return [(str(x.address), port) for x in resolver.resolve(host, "A")]
-    except (resolver.dns.exception.DNSException, OSError):
-        error("stun服务器地址解析失败\n%s" % traceback.format_exc())
-        return []
+    return [(x["data"], port) for x in resolve(host, "A")]
 
 if hasattr(socket, "SO_REUSEPORT_LB"):
     def socket_set_reuseport(sock: socket.socket):
